@@ -30,8 +30,6 @@ Promise.all([
   // Only fetch events to update after booking & deleting
   matcher.super7Events = await super7.getReservations();
   await Promise.all(
-    matcher.eventsToUpdate.map(ev =>
-      gapi.updateEventTitle(ev).catch(console.error)
-    )
+    matcher.eventsToUpdate.map(ev => gapi.updateEventTitle(ev))
   );
 });

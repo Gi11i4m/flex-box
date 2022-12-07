@@ -48,8 +48,7 @@ export class Super7 {
           if (Message && Message !== 'Full') {
             console.error(`Unhandled edge case: `, Message);
           }
-        })
-        .catch(console.error));
+        }));
   }
 
   async deleteReservation(event: Super7Event): Promise<void> {
@@ -66,11 +65,7 @@ export class Super7 {
     reservationId &&
       !Env.dryRun &&
       (event.status === Super7EventStatus.RESERVED
-        ? await this.website
-            .removeReservation(reservationId)
-            .catch(console.error)
-        : await this.website
-            .removeWaitlist(reservationId)
-            .catch(console.error));
+        ? await this.website.removeReservation(reservationId)
+        : await this.website.removeWaitlist(reservationId));
   }
 }
