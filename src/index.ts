@@ -1,5 +1,6 @@
 import { Gapi } from './gapi/gapi';
 import { EventMatcher } from './shared/event-matcher';
+import { logEvents } from './shared/logger';
 import { gcalEventToSuper7Event } from './shared/mapper';
 import { Super7 } from './super7/super7';
 
@@ -11,19 +12,10 @@ const super7 = new Super7();
 Promise.all([
   gapi.authenticate().then(gapi => gapi.getCrossfitEvents()),
   super7.authenticate().then(super7 => super7.getReservations()),
-]).then(async ([calendarEvents, super7Events]) => {
-  console.log('Found Gcal events:');
-  calendarEvents.forEach(({ title, start, location }) =>
-    console.log(`${title} @ ${location}: ${start.toLocaleDateString()}`)
-  );
-  console.log('Found Super7 reservations:');
-  super7Events.forEach(({ title, start, location, status }) =>
-    console.log(
-      `${title} @ ${location}: ${start.toLocaleDateString()} (${status})`
-    )
-  );
+]).then(async ([gcalEvents, super7Events]) => {
+  logEvents(gcalEvents, super7Events);
 
-  const matcher = new EventMatcher(calendarEvents, super7Events);
+  const matcher = new EventMatcher(gcalEvents, super7Events);
 
   await matcher.eventsToBook.reduce(
     (promise, eventToBook) =>

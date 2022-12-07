@@ -23,7 +23,7 @@ export class Super7 {
   ): Promise<void> {
     const eventId = await this.website.eventIdFor(event);
     console.log(
-      `Making reservation for event ${event.title} at ${
+      `${eventId ? 'Making' : 'Not making'} reservation ${event.title} at ${
         event.location
       } at ${event.start.toLocaleDateString()}, id: ${eventId}`
     );
@@ -47,12 +47,12 @@ export class Super7 {
   async deleteReservation(
     event: Pick<Super7Event, 'title' | 'start' | 'location'>
   ): Promise<void> {
+    const reservationId = await this.website.reservationIdFor(event);
     console.log(
-      `Deleting reservation for reservation ${
+      `${reservationId ? 'Deleting' : 'Not deleting'} reservation ${
         event.title
       } at ${event.start.toLocaleDateString()} at ${event.location}`
     );
-    const reservationId = await this.website.reservationIdFor(event);
     reservationId &&
       !Env.dryRun &&
       (await this.website

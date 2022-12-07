@@ -46,7 +46,9 @@ export class Super7Website {
   private async reservationsHtml(): Promise<HTMLDivElement[]> {
     const { data } = await this.http.get('/Reservation/Reservations');
     return Array.from(
-      domFrom(data).querySelectorAll<HTMLDivElement>('.my_reg_item')
+      new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
+        '.my_reg_item'
+      )
     );
   }
 
@@ -59,16 +61,23 @@ export class Super7Website {
   > {
     const calendarFormData = new URLSearchParams();
     calendarFormData.append('Id', location === 'Leuven' ? '2' : '1');
-    calendarFormData.append('aDays', String(daysFromToday(start) - 1));
+    calendarFormData.append('aDays', String(daysFromToday(start)));
     calendarFormData.append('aRoomIds[]', '2');
     const { data } = await this.http.post(
       `/Reservation/CalendarItems`,
       calendarFormData
     );
-    const dom = domFrom(data);
-    return Array.from(dom.querySelectorAll<HTMLDivElement>('.webshop-panel'))
+    console.log(
+      `Finding id for ${title} @${location}: ${start.toLocaleString()}`
+    );
+    return Array.from(
+      new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
+        '.webshop-panel'
+      )
+    )
       .find(el => {
         const [panelTitle, panelTime] = panelTitleFrom(el);
+        console.log(panelTitle, panelTime);
         return (
           title.includes(panelTitle.trim()) && dateToTime(start) === panelTime
         );
@@ -113,8 +122,6 @@ export class Super7Website {
   }
 }
 
-const domFrom = (data: string) => new JSDOM(data).window.document;
-
 const titleToEventName = (title?: string) => {
   const [reserveLijstText, titleText] = cleanTitle(title).split(':');
   return titleText || reserveLijstText;
@@ -158,5 +165,19 @@ const panelTitleFrom = (eventHtml: HTMLDivElement) =>
 
 const dateToTime = (date: Date) => date.toLocaleTimeString().substring(0, 5);
 
-const daysFromToday = (date: Date) =>
-  Math.ceil((date.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+const daysFromToday = (date: Date) => {
+  const [todayOnlyDate, untilDateOnlyDate] = [
+    new Date(),
+    new Date(date.getTime()),
+  ].map(date => {
+    date.setMilliseconds(0);
+    date.setSeconds(0);
+    date.setMinutes(0);
+    date.setHours(0);
+    return date;
+  });
+
+  return Math.ceil(
+    (untilDateOnlyDate.getTime() - todayOnlyDate.getTime()) / (1000 * 3600 * 24)
+  );
+};

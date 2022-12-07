@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron: "0 0,12,16 * * *"
+    - cron: "0 2,12,16 * * *"
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: szenius/set-timezone@v1.0
+        with:
+          timezoneLinux: "Europe/Brussels"
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
