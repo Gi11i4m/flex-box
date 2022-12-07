@@ -70,19 +70,19 @@ export class Super7Website {
     console.log(
       `Finding event id for ${title} @${location}: ${start.toLocaleString()}`
     );
-    return Array.from(
-      new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
-        '.webshop-panel'
-      )
-    )
-      .find(el => {
+    return onlyNumbers(
+      Array.from(
+        new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
+          '.webshop-panel'
+        )
+      ).find(el => {
         const [panelTitle, panelTime] = panelTitleFrom(el);
         console.log(panelTitle, panelTime);
         return (
           title.includes(panelTitle.trim()) && dateToTime(start) === panelTime
         );
-      })
-      ?.id.replace('calitem_', '');
+      })?.id || 'EVENT ID NOT FOUND'
+    );
   }
 
   async makeReservation(eventId: string) {
@@ -105,18 +105,23 @@ export class Super7Website {
     console.log(
       `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`
     );
-    return (await this.reservationsHtml())
-      .find(reservationHtml => {
-        return (
-          reservationTitleFrom(reservationHtml).includes(title) &&
-          start.getTime() === reservationDateFrom(reservationHtml).getTime() &&
-          location
-            .replace('Super 7 ', '')
-            .includes(reservationLocationFrom(reservationHtml))
-        );
-      })
-      ?.querySelector<HTMLButtonElement>('.my_reg_foot_actions > button')
-      ?.id.replace('reservation_', '');
+    return (
+      onlyNumbers(
+        (await this.reservationsHtml())
+          .find(reservationHtml => {
+            return (
+              reservationTitleFrom(reservationHtml).includes(title) &&
+              start.getTime() ===
+                reservationDateFrom(reservationHtml).getTime() &&
+              location
+                .replace('Super 7 ', '')
+                .includes(reservationLocationFrom(reservationHtml))
+            );
+          })
+          ?.querySelector<HTMLButtonElement>('.my_reg_foot_actions > button')
+          ?.id
+      ) || 'RESERVATION ID NOT FOUND'
+    );
   }
 
   async removeReservation(reservationId: string) {
@@ -194,3 +199,6 @@ const daysFromToday = (date: Date) => {
     (untilDateOnlyDate.getTime() - todayOnlyDate.getTime()) / (1000 * 3600 * 24)
   );
 };
+
+const onlyNumbers = (input?: string) =>
+  input?.replaceAll(/[^0-9.]/g, '') || undefined;

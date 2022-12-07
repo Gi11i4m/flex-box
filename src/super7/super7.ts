@@ -58,7 +58,9 @@ export class Super7 {
       chalk.bold.red(
         `${reservationId ? 'Deleting' : 'Not deleting'} reservation ${
           event.title
-        } at ${event.start.toLocaleString()} at ${event.location}`
+        } at ${event.start.toLocaleString()} at ${
+          event.location
+        }, id: ${reservationId}`
       )
     );
     reservationId &&
