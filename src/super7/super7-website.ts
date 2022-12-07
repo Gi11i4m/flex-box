@@ -67,7 +67,9 @@ export class Super7Website {
       `/Reservation/CalendarItems`,
       calendarFormData
     );
-    console.log(`Finding id for ${title} @${location}: ${dateToTime(start)}`);
+    console.log(
+      `Finding event id for ${title} @${location}: ${start.toLocaleString()}`
+    );
     return Array.from(
       new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
         '.webshop-panel'
@@ -100,15 +102,19 @@ export class Super7Website {
   }: Pick<Super7Event, 'title' | 'start' | 'location'>): Promise<
     string | undefined
   > {
+    console.log(
+      `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`
+    );
     return (await this.reservationsHtml())
-      .find(
-        reservationHtml =>
-          title.includes(reservationTitleFrom(reservationHtml)) &&
+      .find(reservationHtml => {
+        return (
+          reservationTitleFrom(reservationHtml).includes(title) &&
           start.getTime() === reservationDateFrom(reservationHtml).getTime() &&
           location
             .replace('Super 7 ', '')
             .includes(reservationLocationFrom(reservationHtml))
-      )
+        );
+      })
       ?.querySelector<HTMLButtonElement>('.my_reg_foot_actions > button')
       ?.id.replace('reservation_', '');
   }
@@ -116,6 +122,12 @@ export class Super7Website {
   async removeReservation(reservationId: string) {
     return await this.http.post(
       `/Reservation/RemoveReservation?aId=${reservationId}`
+    );
+  }
+
+  async removeWaitlist(reservationId: string) {
+    return await this.http.post(
+      `/Reservation/RemoveWaitlist?aId=${reservationId}`
     );
   }
 }

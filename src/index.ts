@@ -17,14 +17,14 @@ Promise.all([
 
   const matcher = new EventMatcher(gcalEvents, super7Events);
 
+  await Promise.all(
+    matcher.eventsToDelete.map(event => super7.deleteReservation(event))
+  );
+
   await matcher.eventsToBook.reduce(
     (promise, eventToBook) =>
       promise.then(() => super7.bookEvent(gcalEventToSuper7Event(eventToBook))),
     Promise.resolve()
-  );
-
-  await Promise.all(
-    matcher.eventsToDelete.map(event => super7.deleteReservation(event))
   );
 
   // Only fetch events to update after booking & deleting

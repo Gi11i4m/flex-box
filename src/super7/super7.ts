@@ -1,5 +1,6 @@
+import chalk from 'chalk';
 import { Env } from '../shared/env';
-import { Super7Event } from './model';
+import { Super7Event, Super7EventStatus } from './model';
 import { Super7Website } from './super7-website';
 
 export class Super7 {
@@ -23,9 +24,11 @@ export class Super7 {
   ): Promise<void> {
     const eventId = await this.website.eventIdFor(event);
     console.log(
-      `${eventId ? 'Making' : 'Not making'} reservation ${event.title} at ${
-        event.location
-      } at ${event.start.toLocaleDateString()}, id: ${eventId}`
+      chalk.bold.green(
+        `${eventId ? 'Making' : 'Not making'} reservation ${event.title} at ${
+          event.location
+        } at ${event.start.toLocaleString()}, id: ${eventId}`
+      )
     );
     eventId &&
       !Env.dryRun &&
@@ -34,9 +37,11 @@ export class Super7 {
         .then(({ data: { Message } }) => {
           if (Message === 'Full') {
             console.log(
-              `Event ${event.title} at ${
-                event.location
-              } at ${event.start.toLocaleDateString()} fully booked, adding to waitlist..., id: ${eventId}`
+              chalk.bold.yellow(
+                `Event ${event.title} at ${
+                  event.location
+                } at ${event.start.toLocaleString()} fully booked, adding to waitlist..., id: ${eventId}`
+              )
             );
             this.website.waitlistReservation(eventId);
           }
@@ -47,19 +52,23 @@ export class Super7 {
         .catch(console.error));
   }
 
-  async deleteReservation(
-    event: Pick<Super7Event, 'title' | 'start' | 'location'>
-  ): Promise<void> {
+  async deleteReservation(event: Super7Event): Promise<void> {
     const reservationId = await this.website.reservationIdFor(event);
     console.log(
-      `${reservationId ? 'Deleting' : 'Not deleting'} reservation ${
-        event.title
-      } at ${event.start.toLocaleDateString()} at ${event.location}`
+      chalk.bold.red(
+        `${reservationId ? 'Deleting' : 'Not deleting'} reservation ${
+          event.title
+        } at ${event.start.toLocaleString()} at ${event.location}`
+      )
     );
     reservationId &&
       !Env.dryRun &&
-      (await this.website
-        .removeReservation(reservationId)
-        .catch(console.error));
+      (event.status === Super7EventStatus.RESERVED
+        ? await this.website
+            .removeReservation(reservationId)
+            .catch(console.error)
+        : await this.website
+            .removeWaitlist(reservationId)
+            .catch(console.error));
   }
 }
