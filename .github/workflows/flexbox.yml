@@ -18,7 +18,7 @@ jobs:
           node-version: 18.x
           cache: "npm"
       - run: npm install
-      - name: run
+      - name: Run script
         env:
           GOOGLE_CALENDAR_ID: ${{secrets.GOOGLE_CALENDAR_ID}}
           GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
