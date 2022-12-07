@@ -2,16 +2,18 @@ name: Flexbox
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+  schedule:
+    - cron: "0 0,12 * * *"
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: Jaid/action-npm-install@v1.2.4
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 18.x
-        cache: 'npm'
-    - run: npm start
+      - uses: actions/checkout@v3
+      - uses: Jaid/action-npm-install@v1.2.4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: "npm"
+      - run: npm start
