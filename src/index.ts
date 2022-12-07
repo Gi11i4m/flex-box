@@ -1,4 +1,4 @@
-import { CROSSFIT_EVENT_PREFIX, Gapi } from './gapi/gapi';
+import { Gapi } from './gapi/gapi';
 import { EventMatcher } from './shared/event-matcher';
 import { gcalEventToSuper7Event } from './shared/mapper';
 import { Super7 } from './super7/super7';
@@ -11,33 +11,24 @@ const super7 = new Super7();
 Promise.all([
   gapi.authenticate().then(gapi => gapi.getCrossfitEvents()),
   super7.authenticate().then(super7 => super7.getReservations()),
-]).then(([calendarEvents, super7Events]) => {
-  const [toBook, toUpdate, toDelete] = new EventMatcher(
-    calendarEvents,
-    super7Events
-  ).match();
+]).then(async ([calendarEvents, super7Events]) => {
+  const matcher = new EventMatcher(calendarEvents, super7Events);
 
-  return Promise.all([
-    ...toUpdate.map(({ id: eventId, title }) =>
-      gapi.updateEventTitle(eventId, title).catch(console.error)
-    ),
-    // TODO: make sure these are booked in order from soonest to latest
-    ...toBook.map(event =>
-      super7
-        .bookEvent(gcalEventToSuper7Event(event))
-        // TODO: refactor
-        .then(() =>
-          gapi.updateEventTitle(
-            event.id,
-            `${CROSSFIT_EVENT_PREFIX}${event.title} ${
-              gcalEventToSuper7Event(event).status
-            }`
-          )
-        )
-        .catch(console.error)
-    ),
-    ...toDelete.map(event =>
-      super7.deleteReservation(event).catch(console.error)
-    ),
-  ]);
+  await matcher.eventsToBook.reduce(
+    (promise, eventToBook) =>
+      promise.then(() => super7.bookEvent(gcalEventToSuper7Event(eventToBook))),
+    Promise.resolve()
+  );
+
+  await Promise.all(
+    matcher.eventsToDelete.map(event => super7.deleteReservation(event))
+  );
+
+  // Only fetch events to update after booking & deleting
+  matcher.super7Events = await super7.getReservations();
+  await Promise.all(
+    matcher.eventsToUpdate.map(ev =>
+      gapi.updateEventTitle(ev).catch(console.error)
+    )
+  );
 });

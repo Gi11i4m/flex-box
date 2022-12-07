@@ -1,12 +1,10 @@
 import express from 'express';
-import fs from 'fs';
 import { Credentials, OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 import open from 'open';
 
-const DATA_FILE = 'gapi-credentials.json';
-
 export class OAuth2 {
+  private _tokens?: Credentials;
   private auth: OAuth2Client;
 
   constructor() {
@@ -19,8 +17,8 @@ export class OAuth2 {
   }
 
   async authenticate() {
-    if (this.tokens) {
-      this.tokens = this.tokens;
+    if (this.tokens?.refresh_token) {
+      this.auth.setCredentials(this.tokens);
       return this;
     }
 
@@ -44,29 +42,23 @@ export class OAuth2 {
 
     open(url);
     await gotTokens;
-
-    this.auth.on('tokens', tokens => {
-      this.tokens = {
-        ...tokens,
-        refresh_token: tokens.refresh_token || this.tokens?.refresh_token,
-      };
-    });
-
     return this;
   }
 
   private get tokens(): Credentials | undefined {
-    return !fs.existsSync(DATA_FILE)
-      ? undefined
-      : JSON.parse(fs.readFileSync(DATA_FILE).toString());
+    if (this._tokens?.refresh_token) {
+      return this._tokens;
+    }
+    if (process.env.GOOGLE_REFRESH_TOKEN) {
+      return {
+        ...this._tokens,
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      };
+    }
+    return this._tokens;
   }
 
   private set tokens(tokens: Credentials | undefined) {
-    if (tokens) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(tokens, undefined, 2));
-      this.auth.setCredentials(tokens);
-    } else {
-      fs.rmSync(DATA_FILE);
-    }
+    this._tokens = tokens;
   }
 }

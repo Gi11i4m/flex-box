@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { calendar_v3 } from 'googleapis/build/src/apis/calendar';
+import { Env } from '../shared/env';
 import { gapiEventToGcalEvent } from './mapper';
 import { GcalEvent } from './model';
 import { OAuth2 } from './oauth';
@@ -46,12 +47,15 @@ export class Gapi {
   }
 
   // Beware of rate limiting
-  async updateEventTitle(eventId: string, title: string) {
-    console.log(`Updating event ${eventId} title to ${title}`);
-    await this.calendar.events.patch({
-      calendarId: process.env.GOOGLE_CALENDAR_ID,
-      eventId,
-      requestBody: { summary: title },
-    });
+  async updateEventTitle({ id: eventId, title, start }: GcalEvent) {
+    console.log(
+      `Updating event at ${start.toLocaleDateString()} title to ${title}, (id: ${eventId})`
+    );
+    !Env.dryRun &&
+      (await this.calendar.events.patch({
+        calendarId: process.env.GOOGLE_CALENDAR_ID,
+        eventId,
+        requestBody: { summary: title },
+      }));
   }
 }

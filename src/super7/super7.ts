@@ -1,3 +1,4 @@
+import { Env } from '../shared/env';
 import { Super7Event } from './model';
 import { Super7Website } from './super7-website';
 
@@ -26,7 +27,21 @@ export class Super7 {
         event.location
       } at ${event.start.toLocaleDateString()}, id: ${eventId}`
     );
-    eventId && (await this.website.makeReservation(eventId));
+    eventId &&
+      !Env.dryRun &&
+      (await this.website
+        .makeReservation(eventId)
+        .then(({ data: { Message } }) => {
+          if (Message === 'Full') {
+            console.log(
+              `Event ${event.title} at ${
+                event.location
+              } at ${event.start.toLocaleDateString()} fully booked, adding to waitlist..., id: ${eventId}`
+            );
+            this.website.waitlistReservation(eventId);
+          }
+        })
+        .catch(console.error));
   }
 
   async deleteReservation(
@@ -38,6 +53,10 @@ export class Super7 {
       } at ${event.start.toLocaleDateString()} at ${event.location}`
     );
     const reservationId = await this.website.reservationIdFor(event);
-    reservationId && (await this.website.removeReservation(reservationId));
+    reservationId &&
+      !Env.dryRun &&
+      (await this.website
+        .removeReservation(reservationId)
+        .catch(console.error));
   }
 }

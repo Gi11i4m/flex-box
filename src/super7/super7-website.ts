@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { JSDOM } from 'jsdom';
 import { CookieJar } from 'tough-cookie';
-import { Super7Event } from './model';
+import { Super7Event, Super7EventStatus } from './model';
 
 export class Super7Website {
   private http: AxiosInstance;
@@ -69,13 +69,21 @@ export class Super7Website {
     return Array.from(dom.querySelectorAll<HTMLDivElement>('.webshop-panel'))
       .find(el => {
         const [panelTitle, panelTime] = panelTitleFrom(el);
-        return title === panelTitle && dateToTime(start) === panelTime;
+        return (
+          title.includes(panelTitle.trim()) && dateToTime(start) === panelTime
+        );
       })
       ?.id.replace('calitem_', '');
   }
 
-  async makeReservation(eventId: string): Promise<void> {
-    await this.http.post(`/Reservation/AddReservation`, { aId: eventId });
+  async makeReservation(eventId: string) {
+    return await this.http.post(`/Reservation/AddReservation`, {
+      aId: eventId,
+    });
+  }
+
+  async waitlistReservation(eventId: string) {
+    return await this.http.get(`/Reservation/AddWaitlist?aId=${eventId}`);
   }
 
   async reservationIdFor({
@@ -98,8 +106,10 @@ export class Super7Website {
       ?.id.replace('reservation_', '');
   }
 
-  async removeReservation(reservationId: string): Promise<void> {
-    await this.http.post(`/Reservation/RemoveReservation?aId=${reservationId}`);
+  async removeReservation(reservationId: string) {
+    return await this.http.post(
+      `/Reservation/RemoveReservation?aId=${reservationId}`
+    );
   }
 }
 
@@ -113,7 +123,9 @@ const titleToEventName = (title?: string) => {
 };
 
 const getReservationStatus = (title?: string) =>
-  cleanTitle(title).split(':').at(0)?.includes('Waitlist') ? '⏳' : '✅';
+  cleanTitle(title).split(':').at(0)?.includes('Waitlist')
+    ? Super7EventStatus.WAITLIST
+    : Super7EventStatus.RESERVED;
 
 const cleanTitle = (title?: string) =>
   title?.replaceAll('\n', '').replaceAll(' ', '') || '';
