@@ -40,6 +40,9 @@ export class Super7 {
             );
             this.website.waitlistReservation(eventId);
           }
+          if (Message && Message !== 'Full') {
+            console.error(`Unhandled edge case: `, Message);
+          }
         })
         .catch(console.error));
   }

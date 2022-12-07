@@ -8,7 +8,7 @@ export const logEvents = (
   gcalEvents: GcalEvent[],
   super7Events: Super7Event[]
 ) => {
-  console.log('Found Gcal events:');
+  console.log(`Found ${gcalEvents.length} Gcal events:`);
   gcalEvents.forEach(({ title, start, location }) =>
     console.log(
       `${title} ${
@@ -17,7 +17,7 @@ export const logEvents = (
     )
   );
   console.log();
-  console.log('Found Super7 reservations:');
+  console.log(`Found ${super7Events.length} Super7 reservations:`);
   super7Events.forEach(({ title, start, location, status }) =>
     console.log(
       `${title} \t@ ${shortenLocation(

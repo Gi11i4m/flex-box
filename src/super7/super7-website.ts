@@ -67,9 +67,7 @@ export class Super7Website {
       `/Reservation/CalendarItems`,
       calendarFormData
     );
-    console.log(
-      `Finding id for ${title} @${location}: ${start.toLocaleString()}`
-    );
+    console.log(`Finding id for ${title} @${location}: ${dateToTime(start)}`);
     return Array.from(
       new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
         '.webshop-panel'
@@ -163,7 +161,10 @@ const panelTitleFrom = (eventHtml: HTMLDivElement) =>
     .split(' ')
     .map(v => v.replace('[', '').replace(']', '').trim()) as [string, string];
 
-const dateToTime = (date: Date) => date.toLocaleTimeString().substring(0, 5);
+const dateToTime = (date: Date) =>
+  `${String(date.getHours()).padStart(2, '0')}:${String(
+    date.getMinutes()
+  ).padStart(2, '0')}`;
 
 const daysFromToday = (date: Date) => {
   const [todayOnlyDate, untilDateOnlyDate] = [
