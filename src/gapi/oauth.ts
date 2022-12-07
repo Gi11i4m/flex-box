@@ -22,6 +22,8 @@ export class OAuth2 {
       return this;
     }
 
+    console.log(OAuth2.name, 'No refresh token found, authenticating...');
+
     const url = this.auth.generateAuthUrl({
       access_type: 'offline',
       scope: ['https://www.googleapis.com/auth/calendar.events'],
