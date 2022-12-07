@@ -65,7 +65,7 @@ export class Super7Website {
       `/Reservation/CalendarItems`,
       calendarFormData
     );
-    const dom = domFrom(data, true);
+    const dom = domFrom(data);
     return Array.from(dom.querySelectorAll<HTMLDivElement>('.webshop-panel'))
       .find(el => {
         const [panelTitle, panelTime] = panelTitleFrom(el);
@@ -113,9 +113,7 @@ export class Super7Website {
   }
 }
 
-const domFrom = (data: string, scripts = false) =>
-  new JSDOM(data, { runScripts: scripts ? undefined : 'dangerously' }).window
-    .document;
+const domFrom = (data: string) => new JSDOM(data).window.document;
 
 const titleToEventName = (title?: string) => {
   const [reserveLijstText, titleText] = cleanTitle(title).split(':');
