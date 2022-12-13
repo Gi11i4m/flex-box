@@ -43,9 +43,9 @@ export class Super7 {
                 } at ${event.start.toLocaleString()} fully booked, adding to waitlist..., id: ${eventId}`
               )
             );
-            this.website.waitlistReservation(eventId);
+            return this.website.waitlistReservation(eventId);
           }
-          if (Message && Message !== 'Full') {
+          if (Message !== 'Full') {
             console.error(`Unhandled edge case: `, Message);
           }
         }));

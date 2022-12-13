@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { JSDOM } from 'jsdom';
 import { CookieJar } from 'tough-cookie';
+import { isAfter, NOW } from '../shared/date';
 import { Super7Event, Super7EventStatus } from './model';
 
 export class Super7Website {
@@ -32,15 +33,17 @@ export class Super7Website {
   }
 
   async reservations(): Promise<Super7Event[]> {
-    return (await this.reservationsHtml()).map(el => {
-      const htmlTitle = reservationTitleFrom(el);
-      return {
-        title: titleToEventName(htmlTitle),
-        location: reservationLocationFrom(el),
-        start: reservationDateFrom(el),
-        status: getReservationStatus(htmlTitle),
-      };
-    });
+    return (await this.reservationsHtml())
+      .map(el => {
+        const htmlTitle = reservationTitleFrom(el);
+        return {
+          title: titleToEventName(htmlTitle),
+          location: reservationLocationFrom(el),
+          start: reservationDateFrom(el),
+          status: getReservationStatus(htmlTitle),
+        };
+      })
+      .filter(({ start }) => isAfter(start, NOW));
   }
 
   private async reservationsHtml(): Promise<HTMLDivElement[]> {
@@ -120,7 +123,7 @@ export class Super7Website {
           })
           ?.querySelector<HTMLButtonElement>('.my_reg_foot_actions > button')
           ?.id
-      ) || 'RESERVATION ID NOT FOUND'
+      ) || undefined
     );
   }
 
@@ -162,7 +165,9 @@ const reservationDateFrom = (reservationHtml: HTMLDivElement) => {
   return new Date(`${date.split('/').reverse().join('-')} ${time}`);
 };
 
-const reservationLocationFrom = (reservationHtml: HTMLDivElement) =>
+const reservationLocationFrom = (
+  reservationHtml: HTMLDivElement
+): 'Leuven' | 'Aarschot' =>
   reservationHtml
     .querySelector('.fa-location-arrow ~ span')
     ?.innerHTML.includes('Leuven')

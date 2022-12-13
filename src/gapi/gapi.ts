@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { calendar_v3 } from 'googleapis/build/src/apis/calendar';
+import { NOW } from '../shared/date';
 import { Env } from '../shared/env';
 import { gapiEventToGcalEvent } from './mapper';
 import { GcalEvent } from './model';
@@ -23,14 +24,13 @@ export class Gapi {
   }
 
   async getCrossfitEvents(): Promise<GcalEvent[]> {
-    const now = new Date();
     const events = await this.calendar.events.list({
       calendarId: process.env.GOOGLE_CALENDAR_ID,
       q: CROSSFIT_EVENT_PREFIX,
       singleEvents: true,
       orderBy: 'startTime',
-      timeMin: now.toISOString(),
-      timeMax: new Date(now.getTime() + TWO_WEEKS_MS).toISOString(),
+      timeMin: NOW.toISOString(),
+      timeMax: new Date(NOW.getTime() + TWO_WEEKS_MS).toISOString(),
     });
 
     if (events.status !== 200) {
