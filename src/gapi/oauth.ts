@@ -61,6 +61,7 @@ export class OAuth2 {
   }
 
   private set tokens(tokens: Credentials | undefined) {
+    console.log(tokens);
     this._tokens = tokens;
   }
 }

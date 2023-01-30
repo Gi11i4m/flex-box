@@ -2,8 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { JSDOM } from 'jsdom';
 import { CookieJar } from 'tough-cookie';
-import { isAfter, NOW } from '../shared/date';
-import { Super7Event, Super7EventStatus } from './model';
+import { Event, EventStatus } from '../shared/event';
 
 export class Super7Website {
   private http: AxiosInstance;
@@ -32,18 +31,16 @@ export class Super7Website {
     return this;
   }
 
-  async reservations(): Promise<Super7Event[]> {
-    return (await this.reservationsHtml())
-      .map(el => {
-        const htmlTitle = reservationTitleFrom(el);
-        return {
-          title: titleToEventName(htmlTitle),
-          location: reservationLocationFrom(el),
-          start: reservationDateFrom(el),
-          status: getReservationStatus(htmlTitle),
-        };
-      })
-      .filter(({ start }) => isAfter(start, NOW));
+  async reservations(): Promise<Event[]> {
+    return (await this.reservationsHtml()).map(el => {
+      const htmlTitle = reservationTitleFrom(el);
+      return {
+        title: titleToEventName(htmlTitle),
+        location: reservationLocationFrom(el),
+        start: reservationDateFrom(el),
+        status: getReservationStatus(htmlTitle),
+      };
+    });
   }
 
   private async reservationsHtml(): Promise<HTMLDivElement[]> {
@@ -59,9 +56,7 @@ export class Super7Website {
     title,
     start,
     location,
-  }: Pick<Super7Event, 'title' | 'start' | 'location'>): Promise<
-    string | undefined
-  > {
+  }: Pick<Event, 'title' | 'start' | 'location'>): Promise<string | undefined> {
     const calendarFormData = new URLSearchParams();
     calendarFormData.append('Id', location === 'Leuven' ? '2' : '1');
     calendarFormData.append('aDays', String(daysFromToday(start)));
@@ -102,9 +97,7 @@ export class Super7Website {
     title,
     start,
     location,
-  }: Pick<Super7Event, 'title' | 'start' | 'location'>): Promise<
-    string | undefined
-  > {
+  }: Pick<Event, 'title' | 'start' | 'location'>): Promise<string | undefined> {
     console.log(
       `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`
     );
@@ -147,8 +140,8 @@ const titleToEventName = (title?: string) => {
 
 const getReservationStatus = (title?: string) =>
   cleanTitle(title).split(':').at(0)?.includes('Waitlist')
-    ? Super7EventStatus.WAITLIST
-    : Super7EventStatus.RESERVED;
+    ? EventStatus.WAITLIST
+    : EventStatus.RESERVED;
 
 const cleanTitle = (title?: string) =>
   title?.replaceAll('\n', '').replaceAll(' ', '') || '';

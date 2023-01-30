@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { Env } from '../shared/env';
-import { Super7Event, Super7EventStatus } from './model';
+import { Event, EventStatus } from '../shared/event';
 import { Super7Website } from './super7-website';
 
 export class Super7 {
@@ -15,12 +15,12 @@ export class Super7 {
     return this;
   }
 
-  async getReservations(): Promise<Super7Event[]> {
+  async getReservations(): Promise<Event[]> {
     return await this.website.reservations();
   }
 
   async bookEvent(
-    event: Pick<Super7Event, 'title' | 'start' | 'location'>
+    event: Pick<Event, 'title' | 'start' | 'location'>
   ): Promise<void> {
     const eventId = await this.website.eventIdFor(event);
     console.log(
@@ -51,7 +51,7 @@ export class Super7 {
         }));
   }
 
-  async deleteReservation(event: Super7Event): Promise<void> {
+  async deleteReservation(event: Event): Promise<void> {
     const reservationId = await this.website.reservationIdFor(event);
     console.log(
       chalk.bold.red(
@@ -64,7 +64,7 @@ export class Super7 {
     );
     reservationId &&
       !Env.dryRun &&
-      (event.status === Super7EventStatus.RESERVED
+      (event.status === EventStatus.RESERVED
         ? await this.website.removeReservation(reservationId)
         : await this.website.removeWaitlist(reservationId));
   }

@@ -1,15 +1,11 @@
 import { CROSSFIT_EVENT_PREFIX } from '../gapi/gapi';
-import { GcalEvent } from '../gapi/model';
-import { Super7Event, Super7EventStatus } from '../super7/model';
+import { Event, EventStatus } from './event';
 import { stripStatusFrom } from './mapper';
 
 export class EventMatcher {
-  constructor(
-    public gcalEvents: GcalEvent[],
-    public super7Events: Super7Event[]
-  ) {}
+  constructor(public gcalEvents: Event[], public super7Events: Event[]) {}
 
-  get eventsToBook(): GcalEvent[] {
+  get eventsToBook(): Event[] {
     return this.gcalEvents
       .reduce((acc, gcalEvent) => {
         const matchedSuper7Event = this.super7Events.find(
@@ -18,12 +14,12 @@ export class EventMatcher {
             gcalEvent.start.getTime() === super7Event.start.getTime()
         );
         return matchedSuper7Event ? acc : [...acc, gcalEvent];
-      }, [] as GcalEvent[])
+      }, [] as Event[])
       .sort((a, b) => a.start.getTime() - b.start.getTime());
   }
 
-  get eventsToUpdate(): GcalEvent[] {
-    return this.gcalEvents.reduce((acc, gcalEvent) => {
+  get eventsToUpdate(): Event[] {
+    return this.gcalEvents.reduce<Event[]>((acc, gcalEvent) => {
       const matchedSuper7Event = this.super7Events.find(
         super7Event =>
           gcalEvent.title.includes(super7Event.title) &&
@@ -41,8 +37,8 @@ export class EventMatcher {
             ]
           : acc;
       }
-      return Object.values(Super7EventStatus).find(status =>
-        gcalEvent.title.includes(status)
+      return Object.values(EventStatus).find(status =>
+        gcalEvent.title.endsWith(status)
       )
         ? [
             ...acc,
@@ -54,10 +50,10 @@ export class EventMatcher {
             },
           ]
         : acc;
-    }, [] as GcalEvent[]);
+    }, []);
   }
 
-  get eventsToDelete(): Super7Event[] {
+  get eventsToDelete(): Event[] {
     return this.super7Events.filter(
       super7Event =>
         !this.gcalEvents.find(

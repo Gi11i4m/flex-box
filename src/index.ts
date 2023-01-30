@@ -6,6 +6,12 @@ import { Super7 } from './super7/super7';
 
 require('dotenv').config();
 
+/**
+ * Possible improvements:
+ * - Map Gcal titles to statusses
+ * - If Gcal event is not matched on Super7, add a third ❌ status
+ */
+
 const gapi = new Gapi();
 const super7 = new Super7();
 
