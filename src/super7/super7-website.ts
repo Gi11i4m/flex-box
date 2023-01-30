@@ -75,10 +75,9 @@ export class Super7Website {
         )
       ).find(el => {
         const [panelTitle, panelTime] = panelTitleFrom(el);
-        console.log(panelTitle, panelTime);
-        return (
-          title.includes(panelTitle.trim()) && dateToTime(start) === panelTime
-        );
+        console.log(panelTitle, panelTime, dateToTime(start));
+
+        return title.includes(panelTitle) && dateToTime(start) === panelTime;
       })?.id || 'EVENT ID NOT FOUND'
     );
   }
@@ -177,9 +176,7 @@ const panelTitleFrom = (eventHtml: HTMLDivElement) =>
     .map(v => v.replace('[', '').replace(']', '').trim()) as [string, string];
 
 const dateToTime = (date: Date) =>
-  `${String(date.getHours()).padStart(2, '0')}:${String(
-    date.getMinutes()
-  ).padStart(2, '0')}`;
+  `${String(date.getHours())}:${String(date.getMinutes()).padStart(2, '0')}`;
 
 const daysFromToday = (date: Date) => {
   const [todayOnlyDate, untilDateOnlyDate] = [
