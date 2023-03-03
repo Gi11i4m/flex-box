@@ -157,6 +157,7 @@ const reservationDateFrom = (reservationHtml: HTMLDivElement) => {
   return new Date(`${date.split('/').reverse().join('-')} ${time}`);
 };
 
+// TODO: get from class `round-location`
 const reservationLocationFrom = (
   reservationHtml: HTMLDivElement
 ): 'Leuven' | 'Aarschot' =>

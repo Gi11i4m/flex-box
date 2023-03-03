@@ -3,6 +3,10 @@
   "homepage": "https://github.com/Gi11i4m/flex-box#readme",
   "author": "Gi11i4m",
   "license": "ISC",
+  "workspaces": [
+    "server",
+    "app"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Gi11i4m/flex-box.git"
