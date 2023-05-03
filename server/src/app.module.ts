@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { RestModule } from './adapter/rest/rest.module';
+import { AdapterRestModule } from '@adapter/rest/rest.module';
+import { CoreModule } from '@core/core.module';
+import { AdapterGoogleCalendarModule } from '@adapter/google-calendar/google-calendar.module';
+import { AdapterSuper7Module } from '@adapter/super7/super7.module';
+import { LibraryConfigurationModule } from '@library/configuration/configuration.module';
 
 @Module({
-  imports: [RestModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    LibraryConfigurationModule,
+    AdapterRestModule,
+    AdapterGoogleCalendarModule,
+    AdapterSuper7Module,
+    CoreModule,
+  ],
 })
 export class AppModule {}

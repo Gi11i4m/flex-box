@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.app.json",
-  "exclude": [],
+  "include": ["./test", "./e2e"],
   "compilerOptions": {
     "composite": true,
     "lib": [],
