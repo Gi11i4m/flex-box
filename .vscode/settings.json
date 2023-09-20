@@ -1,4 +1,0 @@
-{
-  "jest.jestCommandLine": "jest --config jest.config.json",
-  "jest.rootPath": "server/test"
-}
