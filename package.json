@@ -24,6 +24,7 @@
     "@types/gapi.client": "^1.0.5",
     "@types/gapi.client.calendar": "^3.0.11",
     "@types/jsdom": "^20.0.1",
-    "@types/tough-cookie": "^4.0.2"
+    "@types/tough-cookie": "^4.0.2",
+    "prettier": "^3.0.3"
   }
 }

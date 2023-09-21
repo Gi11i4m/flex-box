@@ -1,8 +1,11 @@
-import axios, { AxiosInstance } from 'axios';
-import { wrapper } from 'axios-cookiejar-support';
-import { JSDOM } from 'jsdom';
-import { CookieJar } from 'tough-cookie';
-import { Event, EventStatus } from '../shared/event';
+import axios, { AxiosInstance } from "axios";
+import { wrapper } from "axios-cookiejar-support";
+import { JSDOM } from "jsdom";
+import { CookieJar } from "tough-cookie";
+import { Event, EventStatus } from "../shared/event";
+import { NOW } from "../shared/date";
+
+const SUPER7_LOCATIE_ID = 4;
 
 export class Super7Website {
   private http: AxiosInstance;
@@ -12,43 +15,61 @@ export class Super7Website {
     this.http = wrapper(
       axios.create({
         withCredentials: true,
-        baseURL: 'https://crossfitsuper7.clubplanner.be',
+        baseURL: "https://crossfitsuper7.sportbitapp.nl/cbm",
         jar,
-      })
+      }),
     );
   }
 
   async authenticate() {
     const loginFormData = new URLSearchParams();
-    loginFormData.append('aId', process.env.SUPER7_LOGIN!);
-    loginFormData.append('aPwd', process.env.SUPER7_PASS!);
-    loginFormData.append('aRemember', '1');
+    loginFormData.append("username", process.env.SUPER7_LOGIN!);
+    loginFormData.append("password", process.env.SUPER7_PASS!);
 
-    await this.http.post('/Account/CheckPwd', loginFormData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    await this.http.post("/account/inloggen/?post=1", loginFormData, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
-    await this.http.get('/Home/SetLanguage?lang_id=EN');
+    await this.http.get(`/account/lesmomenten/?locatie=${SUPER7_LOCATIE_ID}`);
     return this;
   }
 
   async reservations(): Promise<Event[]> {
-    return (await this.reservationsHtml()).map(el => {
-      const htmlTitle = reservationTitleFrom(el);
-      return {
-        title: titleToEventName(htmlTitle),
-        location: reservationLocationFrom(el),
-        start: reservationDateFrom(el),
-        status: getReservationStatus(htmlTitle),
-      };
-    });
+    const reservationLinks = await this.reservationsHtml();
+    console.log("== RESERVATIONS ==");
+    console.log(reservationLinks.toString());
+    return [];
+    // return reservationLinks.map((el) => {
+    //   const htmlTitle = reservationTitleFrom(el);
+    //   return {
+    //     title: titleToEventName(htmlTitle),
+    //     location: reservationLocationFrom(el),
+    //     start: reservationDateFrom(el),
+    //     status: getReservationStatus(htmlTitle),
+    //   };
+    // });
   }
 
   private async reservationsHtml(): Promise<HTMLDivElement[]> {
-    const { data } = await this.http.get('/Reservation/Reservations');
+    const reservationLinksForThreeWeeks = await Promise.all([
+      this.getReservationLinksForWeek(NOW.getWeek()),
+      this.getReservationLinksForWeek(NOW.getWeek() + 1),
+      this.getReservationLinksForWeek(NOW.getWeek() + 2),
+    ]);
+    return reservationLinksForThreeWeeks.flat();
+  }
+
+  private async getReservationLinksForWeek(weekNr: number) {
+    const { data } = await this.http.post("/calendar.ajax.php", {
+      year: NOW.getFullYear(),
+      weekNr,
+      locatie: SUPER7_LOCATIE_ID,
+    });
+    console.log(data);
+    // TODO: support the multi-workout <span>
     return Array.from(
       new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
-        '.my_reg_item'
-      )
+        "#calendar-content a[data-date].selected",
+      ),
     );
   }
 
@@ -56,29 +77,29 @@ export class Super7Website {
     title,
     start,
     location,
-  }: Pick<Event, 'title' | 'start' | 'location'>): Promise<string | undefined> {
+  }: Pick<Event, "title" | "start" | "location">): Promise<string | undefined> {
     const calendarFormData = new URLSearchParams();
-    calendarFormData.append('Id', location === 'Leuven' ? '2' : '1');
-    calendarFormData.append('aDays', String(daysFromToday(start)));
-    calendarFormData.append('aRoomIds[]', '2');
+    calendarFormData.append("Id", location === "Leuven" ? "2" : "1");
+    calendarFormData.append("aDays", String(daysFromToday(start)));
+    calendarFormData.append("aRoomIds[]", "2");
     const { data } = await this.http.post(
       `/Reservation/CalendarItems`,
-      calendarFormData
+      calendarFormData,
     );
     console.log(
-      `Finding event id for ${title} @${location}: ${start.toLocaleString()}`
+      `Finding event id for ${title} @${location}: ${start.toLocaleString()}`,
     );
     return onlyNumbers(
       Array.from(
         new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
-          '.webshop-panel'
-        )
-      ).find(el => {
+          ".webshop-panel",
+        ),
+      ).find((el) => {
         const [panelTitle, panelTime] = panelTitleFrom(el);
         console.log(panelTitle, panelTime, dateToTime(start));
 
         return title.includes(panelTitle) && dateToTime(start) === panelTime;
-      })?.id || 'EVENT ID NOT FOUND'
+      })?.id || "EVENT ID NOT FOUND",
     );
   }
 
@@ -96,94 +117,94 @@ export class Super7Website {
     title,
     start,
     location,
-  }: Pick<Event, 'title' | 'start' | 'location'>): Promise<string | undefined> {
+  }: Pick<Event, "title" | "start" | "location">): Promise<string | undefined> {
     console.log(
-      `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`
+      `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`,
     );
     return (
       onlyNumbers(
         (await this.reservationsHtml())
-          .find(reservationHtml => {
+          .find((reservationHtml) => {
             return (
               reservationTitleFrom(reservationHtml).includes(title) &&
               start.getTime() ===
                 reservationDateFrom(reservationHtml).getTime() &&
               location
-                .replace('Super 7 ', '')
+                .replace("Super 7 ", "")
                 .includes(reservationLocationFrom(reservationHtml))
             );
           })
-          ?.querySelector<HTMLButtonElement>('.my_reg_foot_actions > button')
-          ?.id
+          ?.querySelector<HTMLButtonElement>(".my_reg_foot_actions > button")
+          ?.id,
       ) || undefined
     );
   }
 
   async removeReservation(reservationId: string) {
     return await this.http.post(
-      `/Reservation/RemoveReservation?aId=${reservationId}`
+      `/Reservation/RemoveReservation?aId=${reservationId}`,
     );
   }
 
   async removeWaitlist(reservationId: string) {
     return await this.http.post(
-      `/Reservation/RemoveWaitlist?aId=${reservationId}`
+      `/Reservation/RemoveWaitlist?aId=${reservationId}`,
     );
   }
 }
 
 const titleToEventName = (title?: string) => {
-  const [reserveLijstText, titleText] = cleanTitle(title).split(':');
+  const [reserveLijstText, titleText] = cleanTitle(title).split(":");
   return titleText || reserveLijstText;
 };
 
 const getReservationStatus = (title?: string) =>
-  cleanTitle(title).split(':').at(0)?.includes('Waitlist')
+  cleanTitle(title).split(":").at(0)?.includes("Waitlist")
     ? EventStatus.WAITLIST
     : EventStatus.RESERVED;
 
 const cleanTitle = (title?: string) =>
-  title?.replaceAll('\n', '').replaceAll(' ', '') || '';
+  title?.replaceAll("\n", "").replaceAll(" ", "") || "";
 
 const reservationTitleFrom = (reservationHtml: HTMLDivElement) =>
-  reservationHtml.querySelector('.pay_box_head > strong')?.innerHTML.trim() ||
-  '';
+  reservationHtml.querySelector(".pay_box_head > strong")?.innerHTML.trim() ||
+  "";
 
 const reservationDateFrom = (reservationHtml: HTMLDivElement) => {
   const [_, date, time] = reservationHtml
-    .querySelector('.fa-calendar ~ span')
+    .querySelector(".fa-calendar ~ span")
     ?.innerHTML.trim()
-    .split(' ') as [string, string, string];
-  return new Date(`${date.split('/').reverse().join('-')} ${time}`);
+    .split(" ") as [string, string, string];
+  return new Date(`${date.split("/").reverse().join("-")} ${time}`);
 };
 
 // TODO: get from class `round-location`
 const reservationLocationFrom = (
-  reservationHtml: HTMLDivElement
-): 'Leuven' | 'Aarschot' =>
+  reservationHtml: HTMLDivElement,
+): "Leuven" | "Aarschot" =>
   reservationHtml
-    .querySelector('.fa-location-arrow ~ span')
-    ?.innerHTML.includes('Leuven')
-    ? 'Leuven'
-    : 'Aarschot';
+    .querySelector(".fa-location-arrow ~ span")
+    ?.innerHTML.includes("Leuven")
+    ? "Leuven"
+    : "Aarschot";
 
 const panelTitleFrom = (eventHtml: HTMLDivElement) =>
   eventHtml
-    .querySelector<HTMLDivElement>('.calendaritem-panel-title')!
+    .querySelector<HTMLDivElement>(".calendaritem-panel-title")!
     .innerHTML.trim()
-    .split('<span')[0]
+    .split("<span")[0]
     .trim()
-    .split(' ')
-    .map(v => v.replace('[', '').replace(']', '').trim()) as [string, string];
+    .split(" ")
+    .map((v) => v.replace("[", "").replace("]", "").trim()) as [string, string];
 
 const dateToTime = (date: Date) =>
-  `${String(date.getHours())}:${String(date.getMinutes()).padStart(2, '0')}`;
+  `${String(date.getHours())}:${String(date.getMinutes()).padStart(2, "0")}`;
 
 const daysFromToday = (date: Date) => {
   const [todayOnlyDate, untilDateOnlyDate] = [
     new Date(),
     new Date(date.getTime()),
-  ].map(date => {
+  ].map((date) => {
     date.setMilliseconds(0);
     date.setSeconds(0);
     date.setMinutes(0);
@@ -192,9 +213,10 @@ const daysFromToday = (date: Date) => {
   });
 
   return Math.ceil(
-    (untilDateOnlyDate.getTime() - todayOnlyDate.getTime()) / (1000 * 3600 * 24)
+    (untilDateOnlyDate.getTime() - todayOnlyDate.getTime()) /
+      (1000 * 3600 * 24),
   );
 };
 
 const onlyNumbers = (input?: string) =>
-  input?.replaceAll(/[^0-9.]/g, '') || undefined;
+  input?.replaceAll(/[^0-9.]/g, "") || undefined;
