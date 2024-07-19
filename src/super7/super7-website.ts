@@ -6,6 +6,7 @@ import { Event, EventStatus } from "../shared/event";
 import { NOW } from "../shared/date";
 
 const SUPER7_LOCATIE_ID = 4;
+const SUPER7_CROSSFIT_ROOSTER_ID = 4;
 
 export class Super7Website {
   private http: AxiosInstance;
@@ -15,21 +16,23 @@ export class Super7Website {
     this.http = wrapper(
       axios.create({
         withCredentials: true,
-        baseURL: "https://crossfitsuper7.sportbitapp.nl/cbm",
+        baseURL: "https://crossfitsuper7.sportbitapp.nl/cbm/api/data",
         jar,
       }),
     );
   }
 
   async authenticate() {
-    const loginFormData = new URLSearchParams();
-    loginFormData.append("username", process.env.SUPER7_LOGIN!);
-    loginFormData.append("password", process.env.SUPER7_PASS!);
-
-    await this.http.post("/account/inloggen/?post=1", loginFormData, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
-    await this.http.get(`/account/lesmomenten/?locatie=${SUPER7_LOCATIE_ID}`);
+    await this.http.post(
+      "/inloggen",
+      {
+        username: process.env.SUPER7_LOGIN!,
+        password: process.env.SUPER7_PASS!,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    );
     return this;
   }
 
