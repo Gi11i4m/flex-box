@@ -4,6 +4,7 @@ import { JSDOM } from "jsdom";
 import { CookieJar } from "tough-cookie";
 import { Event, EventStatus } from "../shared/event";
 import { NOW } from "../shared/date";
+import { DateTime } from "luxon";
 
 const SUPER7_LOCATIE_ID = 4;
 const SUPER7_CROSSFIT_ROOSTER_ID = 4;
@@ -54,19 +55,24 @@ export class Super7Website {
 
   private async reservationsHtml(): Promise<HTMLDivElement[]> {
     const reservationLinksForThreeWeeks = await Promise.all([
-      this.getReservationLinksForWeek(NOW.getWeek()),
-      this.getReservationLinksForWeek(NOW.getWeek() + 1),
-      this.getReservationLinksForWeek(NOW.getWeek() + 2),
+      this.getReservationLinksForWeek(NOW),
+      this.getReservationLinksForWeek(NOW.plus({ week: 1 })),
+      this.getReservationLinksForWeek(NOW.plus({ week: 2 })),
     ]);
     return reservationLinksForThreeWeeks.flat();
   }
 
-  private async getReservationLinksForWeek(weekNr: number) {
-    const { data } = await this.http.post("/calendar.ajax.php", {
-      year: NOW.getFullYear(),
-      weekNr,
-      locatie: SUPER7_LOCATIE_ID,
-    });
+  private async getReservationLinksForWeek(date: DateTime) {
+    const { data } = await this.http.post(
+      `/events/?datum=${date.toFormat(
+        "yyyy-MM-dd",
+      )}&rooster=${SUPER7_CROSSFIT_ROOSTER_ID}`,
+      {
+        year: NOW.year,
+        weekNr: date,
+        locatie: SUPER7_LOCATIE_ID,
+      },
+    );
     console.log(data);
     // TODO: support the multi-workout <span>
     return Array.from(

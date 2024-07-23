@@ -1,13 +1,12 @@
-import { google } from 'googleapis';
-import { calendar_v3 } from 'googleapis/build/src/apis/calendar';
-import { NOW } from '../shared/date';
-import { Env } from '../shared/env';
-import { Event } from '../shared/event';
-import { gapiEventToGcalEvent } from './mapper';
-import { OAuth2 } from './oauth';
+import { google } from "googleapis";
+import { calendar_v3 } from "googleapis/build/src/apis/calendar";
+import { NOW } from "../shared/date";
+import { Env } from "../shared/env";
+import { Event } from "../shared/event";
+import { gapiEventToGcalEvent } from "./mapper";
+import { OAuth2 } from "./oauth";
 
-const TWO_WEEKS_MS = 1209600000;
-export const CROSSFIT_EVENT_PREFIX = '💪 ';
+export const CROSSFIT_EVENT_PREFIX = "💪 ";
 
 export class Gapi {
   auth: OAuth2;
@@ -15,7 +14,7 @@ export class Gapi {
 
   constructor() {
     this.auth = new OAuth2();
-    this.calendar = google.calendar('v3');
+    this.calendar = google.calendar("v3");
   }
 
   async authenticate() {
@@ -29,20 +28,20 @@ export class Gapi {
       calendarId: process.env.GOOGLE_CALENDAR_ID,
       q: CROSSFIT_EVENT_PREFIX,
       singleEvents: true,
-      orderBy: 'startTime',
-      timeMin: NOW.toISOString(),
-      timeMax: new Date(NOW.getTime() + TWO_WEEKS_MS).toISOString(),
+      orderBy: "startTime",
+      timeMin: NOW.toISO(),
+      timeMax: NOW.plus({ week: 2 }).toISO(),
     });
 
     if (events.status !== 200) {
       throw new Error(
-        `Failed to fetch Google Calendar events: ${events.statusText}`
+        `Failed to fetch Google Calendar events: ${events.statusText}`,
       );
     }
 
     return (
-      events.data.items?.map(event =>
-        gapiEventToGcalEvent(event, CROSSFIT_EVENT_PREFIX)
+      events.data.items?.map((event) =>
+        gapiEventToGcalEvent(event, CROSSFIT_EVENT_PREFIX),
       ) || []
     );
   }
@@ -50,7 +49,7 @@ export class Gapi {
   // Beware of rate limiting
   async updateEventTitle({ id: eventId, title, start }: Event) {
     console.log(
-      `Updating event at ${start.toLocaleDateString()} title to ${title}, (id: ${eventId})`
+      `Updating event at ${start.toLocaleDateString()} title to ${title}, (id: ${eventId})`,
     );
     !Env.dryRun &&
       (await this.calendar.events.patch({
