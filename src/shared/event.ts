@@ -1,13 +1,11 @@
+import { DateTime } from "luxon";
+
 export interface Event {
   id?: string;
   title: string;
   location: string;
-  start: Date;
+  start: DateTime;
   status: EventStatus;
 }
 
-export enum EventStatus {
-  RESERVED = '✅',
-  WAITLIST = '⏳',
-  UNRESERVED = '❌',
-}
+export type EventStatus = "✅" | "⏳" | "❌";

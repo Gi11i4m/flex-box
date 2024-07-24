@@ -15,7 +15,10 @@ require("dotenv").config();
 const gapi = new Gapi();
 const super7 = new Super7();
 
-super7.authenticate().then((super7) => super7.getReservations());
+super7
+  .authenticate()
+  .then((super7) => super7.getReservations())
+  .then((events) => logEvents([], events));
 //
 // Promise.all([
 //   gapi.authenticate().then(gapi => gapi.getCrossfitEvents()),

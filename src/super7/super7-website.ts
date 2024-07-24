@@ -5,10 +5,46 @@ import { CookieJar } from "tough-cookie";
 import { Event, EventStatus } from "../shared/event";
 import { NOW } from "../shared/date";
 import { DateTime } from "luxon";
+import { Memoize } from "typescript-memoize";
 
 const SUPER7_LOCATIE_ID = 4;
 const SUPER7_CROSSFIT_ROOSTER_ID = 4;
 const SUPER7_BASE_URL = "https://crossfitsuper7.sportbitapp.nl/cbm/api/data";
+
+/**
+ * Example
+ *
+ * {
+ *   id: 14059,
+ *   start: '2024-07-24T07:00:00+02:00',
+ *   eind: '2024-07-24T08:00:00+02:00',
+ *   titel: 'CrossFit',
+ *   trainer: { naam: 'Pieter Gielen ', telefoonnummer: null },
+ *   ruimte: { naam: 'Hoofdruimte' },
+ *   aantalDeelnemers: 5,
+ *   maxDeelnemers: 12,
+ *   type: { id: 1, hexkleur: '#0E76BC', naam: 'CrossFit' },
+ *   aangemeld: false,
+ *   opWachtlijst: false,
+ *   buddyAangemeld: false,
+ *   meerdereTrainers: false
+ * }
+ */
+type Super7WebsiteEvent = {
+  id: number;
+  start: string;
+  eind: string;
+  titel: string;
+  trainer: { naam: string; telefoonnummer: string | null };
+  ruimte: { naam: "Hoofdruimte" };
+  aantalDeelnemers: number;
+  maxDeelnemers: number;
+  type: { id: 1; hexkleur: string; naam: string };
+  aangemeld: boolean;
+  opWachtlijst: boolean;
+  buddyAangemeld: boolean;
+  meerdereTrainers: boolean;
+};
 
 export class Super7Website {
   private readonly http: AxiosInstance;
@@ -44,9 +80,14 @@ export class Super7Website {
   }
 
   async reservations(): Promise<Event[]> {
-    console.log("== RESERVATIONS ==");
-    console.log(await this.getEventsForNextTwoWeeks());
-    return [];
+    return (await this.getEventsForNextTwoWeeks())
+      .filter(({ aangemeld }) => aangemeld)
+      .map((event) => ({
+        title: event.titel,
+        start: DateTime.fromISO(event.start),
+        status: getEventStatus(event),
+        location: "Leuven",
+      }));
     // return reservationLinks.map((el) => {
     //   const htmlTitle = reservationTitleFrom(el);
     //   return {
@@ -58,8 +99,8 @@ export class Super7Website {
     // });
   }
 
-  // TODO: memoize
-  private async getEventsForNextTwoWeeks(): Promise<any[]> {
+  @Memoize()
+  private async getEventsForNextTwoWeeks(): Promise<Super7WebsiteEvent[]> {
     const threeWeeksInDaysArray = Array.from({ length: 14 }, (_, i) => i);
     const reservationLinksForThreeWeeks = await Promise.all(
       threeWeeksInDaysArray.map((dayToAdd) =>
@@ -175,6 +216,16 @@ export class Super7Website {
     };
   }
 }
+
+const getEventStatus = (event: Super7WebsiteEvent): EventStatus => {
+  if (!event.aangemeld) {
+    return "❌";
+  }
+  if (event.opWachtlijst) {
+    return "⏳";
+  }
+  return "✅";
+};
 
 const titleToEventName = (title?: string) => {
   const [reserveLijstText, titleText] = cleanTitle(title).split(":");

@@ -49,7 +49,7 @@ export class Gapi {
   // Beware of rate limiting
   async updateEventTitle({ id: eventId, title, start }: Event) {
     console.log(
-      `Updating event at ${start.toLocaleDateString()} title to ${title}, (id: ${eventId})`,
+      `Updating event at ${start.toLocaleString()} title to ${title}, (id: ${eventId})`,
     );
     !Env.dryRun &&
       (await this.calendar.events.patch({

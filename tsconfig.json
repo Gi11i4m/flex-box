@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "experimentalDecorators": true,
     "types": ["DOM"],
     "typeRoots": ["src/shared/date.d.ts"],
     "target": "ES2022",
