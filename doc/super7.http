@@ -1,0 +1,18 @@
+### Get XSRF token
+GET {{baseUrl}}/heartbeat/?taalIso=be
+
+### Login
+POST {{baseUrl}}/inloggen/
+Cookie: XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}",
+  "remember": false
+}
+
+### Events
+GET {{baseUrl}}/events/?datum=2024-07-24&rooster=4
+Cookie: XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { JSDOM } from "jsdom";
 import { CookieJar } from "tough-cookie";
@@ -8,39 +8,44 @@ import { DateTime } from "luxon";
 
 const SUPER7_LOCATIE_ID = 4;
 const SUPER7_CROSSFIT_ROOSTER_ID = 4;
+const SUPER7_BASE_URL = "https://crossfitsuper7.sportbitapp.nl/cbm/api/data";
 
 export class Super7Website {
-  private http: AxiosInstance;
+  private readonly http: AxiosInstance;
+  private readonly cookieJar: CookieJar;
 
   constructor() {
-    const jar = new CookieJar();
+    this.cookieJar = new CookieJar();
     this.http = wrapper(
       axios.create({
         withCredentials: true,
-        baseURL: "https://crossfitsuper7.sportbitapp.nl/cbm/api/data",
-        jar,
+        baseURL: SUPER7_BASE_URL,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        jar: this.cookieJar,
       }),
     );
   }
 
   async authenticate() {
+    await this.http.get("/heartbeat/?taalIso=be");
     await this.http.post(
-      "/inloggen",
+      "/inloggen/",
       {
         username: process.env.SUPER7_LOGIN!,
         password: process.env.SUPER7_PASS!,
+        remember: false,
       },
-      {
-        headers: { "Content-Type": "application/json" },
-      },
+      this.headerConfig(),
     );
     return this;
   }
 
   async reservations(): Promise<Event[]> {
-    const reservationLinks = await this.reservationsHtml();
     console.log("== RESERVATIONS ==");
-    console.log(reservationLinks.toString());
+    console.log(await this.getEventsForNextTwoWeeks());
     return [];
     // return reservationLinks.map((el) => {
     //   const htmlTitle = reservationTitleFrom(el);
@@ -53,33 +58,27 @@ export class Super7Website {
     // });
   }
 
-  private async reservationsHtml(): Promise<HTMLDivElement[]> {
-    const reservationLinksForThreeWeeks = await Promise.all([
-      this.getReservationLinksForWeek(NOW),
-      this.getReservationLinksForWeek(NOW.plus({ week: 1 })),
-      this.getReservationLinksForWeek(NOW.plus({ week: 2 })),
-    ]);
+  // TODO: memoize
+  private async getEventsForNextTwoWeeks(): Promise<any[]> {
+    const threeWeeksInDaysArray = Array.from({ length: 14 }, (_, i) => i);
+    const reservationLinksForThreeWeeks = await Promise.all(
+      threeWeeksInDaysArray.map((dayToAdd) =>
+        this.getReservationsForDay(NOW.plus({ day: dayToAdd })),
+      ),
+    );
     return reservationLinksForThreeWeeks.flat();
   }
 
-  private async getReservationLinksForWeek(date: DateTime) {
-    const { data } = await this.http.post(
+  private async getReservationsForDay(date: DateTime) {
+    const {
+      data: { ochtend, middag, avond },
+    } = await this.http.get(
       `/events/?datum=${date.toFormat(
         "yyyy-MM-dd",
       )}&rooster=${SUPER7_CROSSFIT_ROOSTER_ID}`,
-      {
-        year: NOW.year,
-        weekNr: date,
-        locatie: SUPER7_LOCATIE_ID,
-      },
+      this.headerConfig(),
     );
-    console.log(data);
-    // TODO: support the multi-workout <span>
-    return Array.from(
-      new JSDOM(data).window.document.querySelectorAll<HTMLDivElement>(
-        "#calendar-content a[data-date].selected",
-      ),
-    );
+    return [...ochtend, ...middag, ...avond];
   }
 
   async eventIdFor({
@@ -122,32 +121,32 @@ export class Super7Website {
     return await this.http.get(`/Reservation/AddWaitlist?aId=${eventId}`);
   }
 
-  async reservationIdFor({
-    title,
-    start,
-    location,
-  }: Pick<Event, "title" | "start" | "location">): Promise<string | undefined> {
-    console.log(
-      `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`,
-    );
-    return (
-      onlyNumbers(
-        (await this.reservationsHtml())
-          .find((reservationHtml) => {
-            return (
-              reservationTitleFrom(reservationHtml).includes(title) &&
-              start.getTime() ===
-                reservationDateFrom(reservationHtml).getTime() &&
-              location
-                .replace("Super 7 ", "")
-                .includes(reservationLocationFrom(reservationHtml))
-            );
-          })
-          ?.querySelector<HTMLButtonElement>(".my_reg_foot_actions > button")
-          ?.id,
-      ) || undefined
-    );
-  }
+  // async reservationIdFor({
+  //   title,
+  //   start,
+  //   location,
+  // }: Pick<Event, "title" | "start" | "location">): Promise<string | undefined> {
+  //   console.log(
+  //     `Finding reservation id for ${title} @${location}: ${start.toLocaleString()}`,
+  //   );
+  //   return (
+  //     onlyNumbers(
+  //       (await this.getEventsForNextTwoWeeks())
+  //         .find((reservationHtml) => {
+  //           return (
+  //             reservationTitleFrom(reservationHtml).includes(title) &&
+  //             start.getTime() ===
+  //               reservationDateFrom(reservationHtml).getTime() &&
+  //             location
+  //               .replace("Super 7 ", "")
+  //               .includes(reservationLocationFrom(reservationHtml))
+  //           );
+  //         })
+  //         ?.querySelector<HTMLButtonElement>(".my_reg_foot_actions > button")
+  //         ?.id,
+  //     ) || undefined
+  //   );
+  // }
 
   async removeReservation(reservationId: string) {
     return await this.http.post(
@@ -159,6 +158,21 @@ export class Super7Website {
     return await this.http.post(
       `/Reservation/RemoveWaitlist?aId=${reservationId}`,
     );
+  }
+
+  private headerConfig(): AxiosRequestConfig {
+    const maybeXsrfToken = this.cookieJar
+      .getCookiesSync(SUPER7_BASE_URL)
+      .find(({ key }) => key === "XSRF-TOKEN")?.value;
+
+    if (!maybeXsrfToken) {
+      return {};
+    }
+    return {
+      headers: {
+        "X-Xsrf-Token": maybeXsrfToken,
+      },
+    };
   }
 }
 
