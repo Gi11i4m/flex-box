@@ -1,25 +1,19 @@
-import { Event } from './event';
-
-const shortenLocation = (location: string) =>
-  location.length > 22 ? `${location.slice(0, 22)}...` : location;
+import { Event } from "./event";
+import { DateTime } from "luxon";
 
 export const logEvents = (gcalEvents: Event[], super7Events: Event[]) => {
   console.log(`Found ${gcalEvents.length} Gcal events:`);
-  gcalEvents.forEach(({ title, start, location }) =>
-    console.log(
-      `${title} ${
-        title.includes('Crossfit') ? '\t\t' : '\t'
-      }@ ${shortenLocation(location)}: ${start.toLocaleDateString()}`
-    )
-  );
+  gcalEvents.forEach(logEvent);
   console.log();
   console.log(`Found ${super7Events.length} Super7 reservations:`);
-  super7Events.forEach(({ title, start, location, status }) =>
-    console.log(
-      `${title} \t@ ${shortenLocation(
-        location
-      )}: ${start.toLocaleDateString()} (${status})`
-    )
-  );
+  super7Events.forEach(logEvent);
   console.log();
 };
+
+const logEvent = ({ start, status, title }: Event) =>
+  console.log(
+    `${status ? status + " " : ""}[${start.toLocaleString(
+      DateTime.DATETIME_MED,
+      { locale: "nl" },
+    )}] ${title}`,
+  );

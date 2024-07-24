@@ -7,7 +7,6 @@ import { NOW } from "../shared/date";
 import { DateTime } from "luxon";
 import { Memoize } from "typescript-memoize";
 
-const SUPER7_LOCATIE_ID = 4;
 const SUPER7_CROSSFIT_ROOSTER_ID = 4;
 const SUPER7_BASE_URL = "https://crossfitsuper7.sportbitapp.nl/cbm/api/data";
 
@@ -83,10 +82,9 @@ export class Super7Website {
     return (await this.getEventsForNextTwoWeeks())
       .filter(({ aangemeld }) => aangemeld)
       .map((event) => ({
-        title: event.titel,
+        title: event.titel.trim(),
         start: DateTime.fromISO(event.start),
         status: getEventStatus(event),
-        location: "Leuven",
       }));
     // return reservationLinks.map((el) => {
     //   const htmlTitle = reservationTitleFrom(el);
@@ -125,10 +123,9 @@ export class Super7Website {
   async eventIdFor({
     title,
     start,
-    location,
-  }: Pick<Event, "title" | "start" | "location">): Promise<string | undefined> {
+  }: Pick<Event, "title" | "start">): Promise<string | undefined> {
     const calendarFormData = new URLSearchParams();
-    calendarFormData.append("Id", location === "Leuven" ? "2" : "1");
+    // calendarFormData.append("Id", location === "Leuven" ? "2" : "1");
     calendarFormData.append("aDays", String(daysFromToday(start)));
     calendarFormData.append("aRoomIds[]", "2");
     const { data } = await this.http.post(
@@ -232,10 +229,8 @@ const titleToEventName = (title?: string) => {
   return titleText || reserveLijstText;
 };
 
-const getReservationStatus = (title?: string) =>
-  cleanTitle(title).split(":").at(0)?.includes("Waitlist")
-    ? EventStatus.WAITLIST
-    : EventStatus.RESERVED;
+const getReservationStatus = (title?: string): EventStatus =>
+  cleanTitle(title).split(":").at(0)?.includes("Waitlist") ? "⏳" : "✅";
 
 const cleanTitle = (title?: string) =>
   title?.replaceAll("\n", "").replaceAll(" ", "") || "";
@@ -271,13 +266,12 @@ const panelTitleFrom = (eventHtml: HTMLDivElement) =>
     .split(" ")
     .map((v) => v.replace("[", "").replace("]", "").trim()) as [string, string];
 
-const dateToTime = (date: Date) =>
-  `${String(date.getHours())}:${String(date.getMinutes()).padStart(2, "0")}`;
+const dateToTime = (date: DateTime) => date.toFormat("H:mm");
 
-const daysFromToday = (date: Date) => {
+const daysFromToday = (date: DateTime) => {
   const [todayOnlyDate, untilDateOnlyDate] = [
     new Date(),
-    new Date(date.getTime()),
+    new Date(date.toMillis()),
   ].map((date) => {
     date.setMilliseconds(0);
     date.setSeconds(0);

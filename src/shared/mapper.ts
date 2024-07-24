@@ -1,20 +1,13 @@
-import { Event, EventStatus } from './event';
+import { Event, eventStatusValues } from "./event";
 
-export const gcalEventToSuper7Event = ({
-  title,
-  start,
-  location: mapsLocation,
-}: Event): Event => ({
+export const gcalEventToSuper7Event = ({ title, start }: Event): Event => ({
   title: stripStatusFrom(title),
   start,
-  location: mapsLocation.startsWith('CrossFit Super7 Leuven')
-    ? 'Leuven'
-    : 'Aarschot',
-  status: EventStatus.RESERVED,
+  status: "✅",
 });
 
 export const stripStatusFrom = (title: string) =>
-  Object.values(EventStatus).reduce(
-    (acc, status) => acc.replace(` ${status}`, ''),
-    title
+  eventStatusValues.reduce(
+    (acc, status) => acc.replace(` ${status}`, ""),
+    title,
   );

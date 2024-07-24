@@ -19,14 +19,12 @@ export class Super7 {
     return await this.website.reservations();
   }
 
-  async bookEvent(
-    event: Pick<Event, "title" | "start" | "location">,
-  ): Promise<void> {
+  async bookEvent(event: Pick<Event, "title" | "start">): Promise<void> {
     const eventId = await this.website.eventIdFor(event);
     console.log(
       chalk.bold.green(
-        `${eventId ? "Making" : "Not making"} reservation ${event.title} at ${
-          event.location
+        `${eventId ? "Making" : "Not making"} reservation ${
+          event.title
         } at ${event.start.toLocaleString()}, id: ${eventId}`,
       ),
     );
@@ -38,8 +36,8 @@ export class Super7 {
           if (Message === "Full") {
             console.log(
               chalk.bold.yellow(
-                `Event ${event.title} at ${
-                  event.location
+                `Event ${
+                  event.title
                 } at ${event.start.toLocaleString()} fully booked, adding to waitlist..., id: ${eventId}`,
               ),
             );
@@ -58,14 +56,12 @@ export class Super7 {
       chalk.bold.red(
         `${reservationId ? "Deleting" : "Not deleting"} reservation ${
           event.title
-        } at ${event.start.toLocaleString()} at ${
-          event.location
-        }, id: ${reservationId}`,
+        } at ${event.start.toLocaleString()}, id: ${reservationId}`,
       ),
     );
     reservationId &&
       !Env.dryRun &&
-      (event.status === EventStatus.RESERVED
+      (event.status === "❌"
         ? await this.website.removeReservation(reservationId)
         : await this.website.removeWaitlist(reservationId));
   }
