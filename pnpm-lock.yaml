@@ -23,6 +23,9 @@ importers:
       express:
         specifier: ^4.18.2
         version: 4.18.2
+      fastest-levenshtein:
+        specifier: ^1.0.16
+        version: 1.0.16
       google-auth-library:
         specifier: ^8.9.0
         version: 8.9.0
@@ -89,8 +92,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@maxim_mazurok/gapi.client.calendar-v3@0.0.20240712':
-    resolution: {integrity: sha512-VmkkM3i8p/8jhfB0AlnQGP96HFKbf5AJfa185RljANsojxilWOqA976tWtxJ+euc84/qBENSSssJHfpYx661Xg==}
+  '@maxim_mazurok/gapi.client.calendar-v3@0.0.20240726':
+    resolution: {integrity: sha512-nGpQdK6sBZuEgR9dNEJdloiRIXJ8ygpaHUMPjDdNJRBpOczWLVfJRw32f7KqIRkB1j44xy23MLXEz+QpEgPZtw==}
 
   '@maxim_mazurok/gapi.client.discovery-v1@0.1.20200806':
     resolution: {integrity: sha512-Wl6UfmZVDdWbY3PUu8E2ULk9RPLjnMqp/iOA4tcK8Ne+U/GmlnWP/e34IaZNGArfl7iXJNOG+/3Rj9L9jQyF9Q==}
@@ -383,6 +386,10 @@ packages:
 
   fast-text-encoding@1.0.6:
     resolution: {integrity: sha512-VhXlQgj9ioXCqGstD37E/HBeqEGV/qOD/kmbVG8h5xKBYvM1L3lR1Zn4555cQ8GkYbJa8aJSipLPndE1k6zK2w==}
+
+  fastest-levenshtein@1.0.16:
+    resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
+    engines: {node: '>= 4.9.1'}
 
   finalhandler@1.2.0:
     resolution: {integrity: sha512-5uXcUVftlQMFnWC9qu/svkWv3GTd2PfUhK/3PLkYNAe7FbqJMt3515HaxE6eRL74GdsriiwujiawdaB1BpEISg==}
@@ -840,7 +847,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
 
-  '@maxim_mazurok/gapi.client.calendar-v3@0.0.20240712':
+  '@maxim_mazurok/gapi.client.calendar-v3@0.0.20240726':
     dependencies:
       '@types/gapi.client': 1.0.6
       '@types/gapi.client.discovery-v1': 0.0.1
@@ -885,7 +892,7 @@ snapshots:
 
   '@types/gapi.client.calendar@3.0.12':
     dependencies:
-      '@maxim_mazurok/gapi.client.calendar-v3': 0.0.20240712
+      '@maxim_mazurok/gapi.client.calendar-v3': 0.0.20240726
 
   '@types/gapi.client.discovery-v1@0.0.1':
     dependencies:
@@ -1148,6 +1155,8 @@ snapshots:
   extend@3.0.2: {}
 
   fast-text-encoding@1.0.6: {}
+
+  fastest-levenshtein@1.0.16: {}
 
   finalhandler@1.2.0:
     dependencies:

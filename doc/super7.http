@@ -3,8 +3,7 @@ GET {{baseUrl}}/heartbeat/?taalIso=be
 
 ### Login
 POST {{baseUrl}}/inloggen/
-Cookie: XSRF-TOKEN={{xsrfToken}}
-X-XSRF-TOKEN: {{xsrfToken}}
+X-Xsrf-Token: {{xsrfToken}}
 
 {
   "username": "{{username}}",
@@ -13,6 +12,16 @@ X-XSRF-TOKEN: {{xsrfToken}}
 }
 
 ### Events
-GET {{baseUrl}}/events/?datum=2024-07-24&rooster=4
+GET {{baseUrl}}/events/?datum=2024-08-04&rooster=4
 Cookie: XSRF-TOKEN={{xsrfToken}}
-X-XSRF-TOKEN: {{xsrfToken}}
+X-Xsrf-Token: {{xsrfToken}}
+
+### RESERVE Event
+POST {{baseUrl}}/events/14502/deelname/
+Cookie: XSRF-TOKEN={{xsrfToken}}
+X-Xsrf-Token: {{xsrfToken}}
+
+### DELETE Event
+DELETE {{baseUrl}}/events/14616/deelname/
+Cookie: XSRF-TOKEN={{xsrfToken}}
+X-Xsrf-Token: {{xsrfToken}}

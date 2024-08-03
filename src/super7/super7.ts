@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import { Env } from "../shared/env";
-import { Event, EventStatus } from "../shared/event";
+import { Event } from "../shared/event";
 import { Super7Website } from "./super7-website";
+import { isDryRun } from "../shared/environment";
 
 export class Super7 {
   website: Super7Website;
@@ -19,7 +19,7 @@ export class Super7 {
     return await this.website.reservations();
   }
 
-  async bookEvent(event: Pick<Event, "title" | "start">): Promise<void> {
+  async bookEvent(event: Event): Promise<void> {
     const eventId = await this.website.eventIdFor(event);
     console.log(
       chalk.bold.green(
@@ -28,41 +28,27 @@ export class Super7 {
         } at ${event.start.toLocaleString()}, id: ${eventId}`,
       ),
     );
-    eventId &&
-      !Env.dryRun &&
-      (await this.website
-        .makeReservation(eventId)
-        .then(({ data: { Message } }) => {
-          if (Message === "Full") {
-            console.log(
-              chalk.bold.yellow(
-                `Event ${
-                  event.title
-                } at ${event.start.toLocaleString()} fully booked, adding to waitlist..., id: ${eventId}`,
-              ),
-            );
-            return this.website.waitlistReservation(eventId);
-          }
-          if (Message !== "Full") {
-            console.error(`Unhandled edge case: `, Message);
-          }
-        }));
+
+    if (!eventId || isDryRun()) {
+      return;
+    }
+
+    await this.website.makeReservation(eventId);
   }
 
   async deleteReservation(event: Event): Promise<void> {
-    // const reservationId = await this.website.reservationIdFor(event);
-    const reservationId = null;
+    const eventId = await this.website.eventIdFor(event);
     console.log(
       chalk.bold.red(
-        `${reservationId ? "Deleting" : "Not deleting"} reservation ${
+        `${eventId ? "Deleting" : "Not deleting"} reservation ${
           event.title
-        } at ${event.start.toLocaleString()}, id: ${reservationId}`,
+        } at ${event.start.toLocaleString()}, id: ${eventId}`,
       ),
     );
-    reservationId &&
-      !Env.dryRun &&
-      (event.status === "❌"
-        ? await this.website.removeReservation(reservationId)
-        : await this.website.removeWaitlist(reservationId));
+    if (!eventId || isDryRun()) {
+      return;
+    }
+
+    await this.website.removeReservation(eventId);
   }
 }

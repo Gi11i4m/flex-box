@@ -1,6 +1,7 @@
-import { CROSSFIT_EVENT_PREFIX } from "../gapi/gapi";
-import { Event, EventStatus, eventStatusValues } from "./event";
-import { stripStatusFrom } from "./mapper";
+import { Event } from "./event";
+import { Memoize } from "typescript-memoize";
+
+export const EVENT_MATCHER_MEMOIZE_TAG = "event_matcher_website_memoize";
 
 export class EventMatcher {
   constructor(
@@ -8,62 +9,41 @@ export class EventMatcher {
     public super7Events: Event[],
   ) {}
 
+  @Memoize({ tags: [EVENT_MATCHER_MEMOIZE_TAG] })
   get eventsToBook(): Event[] {
     return this.gcalEvents
       .reduce((acc, gcalEvent) => {
-        const matchedSuper7Event = this.super7Events.find(
-          (super7Event) =>
-            gcalEvent.title.includes(super7Event.title) &&
-            gcalEvent.start.equals(super7Event.start),
+        const matchedSuper7Event = this.super7Events.find((super7Event) =>
+          this.matches(super7Event, gcalEvent),
         );
         return matchedSuper7Event ? acc : [...acc, gcalEvent];
       }, [] as Event[])
       .sort((a, b) => a.start.toMillis() - b.start.toMillis());
   }
 
+  @Memoize({ tags: [EVENT_MATCHER_MEMOIZE_TAG] })
   get eventsToUpdate(): Event[] {
     return this.gcalEvents.reduce<Event[]>((acc, gcalEvent) => {
-      const matchedSuper7Event = this.super7Events.find(
-        (super7Event) =>
-          gcalEvent.title.includes(super7Event.title) &&
-          gcalEvent.start.equals(super7Event.start),
+      const matchedSuper7Event = this.super7Events.find((super7Event) =>
+        this.matches(super7Event, gcalEvent),
       );
-
-      if (matchedSuper7Event) {
-        return !gcalEvent.title.includes(matchedSuper7Event.status)
-          ? [
-              ...acc,
-              {
-                ...gcalEvent,
-                title: `${CROSSFIT_EVENT_PREFIX}${matchedSuper7Event.title} ${matchedSuper7Event.status}`,
-              },
-            ]
-          : acc;
-      }
-      return eventStatusValues.find((status) =>
-        gcalEvent.title.endsWith(status),
-      )
-        ? [
-            ...acc,
-            {
-              ...gcalEvent,
-              title: stripStatusFrom(
-                `${CROSSFIT_EVENT_PREFIX}${gcalEvent.title}`,
-              ),
-            },
-          ]
+      return matchedSuper7Event
+        ? [...acc, { ...matchedSuper7Event, id: gcalEvent.id }]
         : acc;
     }, []);
   }
 
+  @Memoize({ tags: [EVENT_MATCHER_MEMOIZE_TAG] })
   get eventsToDelete(): Event[] {
     return this.super7Events.filter(
       (super7Event) =>
-        !this.gcalEvents.find(
-          (gcalEvent) =>
-            gcalEvent.title.includes(super7Event.title) &&
-            gcalEvent.start.equals(super7Event.start),
+        !this.gcalEvents.find((gcalEvent) =>
+          this.matches(super7Event, gcalEvent),
         ),
     );
+  }
+
+  private matches(event1: Event, event2: Event) {
+    return event1.start.equals(event2.start);
   }
 }

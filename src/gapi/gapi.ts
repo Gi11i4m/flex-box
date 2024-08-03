@@ -1,12 +1,12 @@
 import { google } from "googleapis";
 import { calendar_v3 } from "googleapis/build/src/apis/calendar";
 import { NOW } from "../shared/date";
-import { Env } from "../shared/env";
 import { Event } from "../shared/event";
 import { gapiEventToGcalEvent } from "./mapper";
 import { OAuth2 } from "./oauth";
+import { envNumber, isDryRun } from "../shared/environment";
 
-export const CROSSFIT_EVENT_PREFIX = "💪 ";
+export const CROSSFIT_EVENT_PREFIX = "💪";
 
 export class Gapi {
   auth: OAuth2;
@@ -30,7 +30,9 @@ export class Gapi {
       singleEvents: true,
       orderBy: "startTime",
       timeMin: NOW.toISO(),
-      timeMax: NOW.plus({ week: 2 }).toISO(),
+      timeMax: NOW.plus({
+        week: envNumber("NUMBER_OF_WEEKS_TO_RESERVE"),
+      }).toISO(),
     });
 
     if (events.status !== 200) {
@@ -47,15 +49,18 @@ export class Gapi {
   }
 
   // Beware of rate limiting
-  async updateEventTitle({ id: eventId, title, start }: Event) {
+  async updateEventTitle(event: Event) {
+    const newEventTitle = `${CROSSFIT_EVENT_PREFIX} ${event.title} ${event.status}`;
     console.log(
-      `Updating event at ${start.toLocaleString()} title to ${title}, (id: ${eventId})`,
+      `Updating event at ${event.start.toLocaleString()} title to ${newEventTitle}, (id: ${
+        event.id
+      })`,
     );
-    !Env.dryRun &&
+    !isDryRun() &&
       (await this.calendar.events.patch({
         calendarId: process.env.GOOGLE_CALENDAR_ID,
-        eventId,
-        requestBody: { summary: title },
+        eventId: event.id,
+        requestBody: { summary: newEventTitle },
       }));
   }
 }

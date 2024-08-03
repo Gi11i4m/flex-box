@@ -1,7 +1,8 @@
-import express from 'express';
-import { Credentials, OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
-import open from 'open';
+import express from "express";
+import { Credentials, OAuth2Client } from "google-auth-library";
+import { google } from "googleapis";
+import open from "open";
+import { env } from "../shared/environment";
 
 export class OAuth2 {
   private _tokens?: Credentials;
@@ -9,9 +10,9 @@ export class OAuth2 {
 
   constructor() {
     this.auth = new google.auth.OAuth2({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri: process.env.GOOGLE_REDIRECT_URL,
+      clientId: env("GOOGLE_CLIENT_ID"),
+      clientSecret: env("GOOGLE_CLIENT_SECRET"),
+      redirectUri: env("GOOGLE_REDIRECT_URL"),
     });
     google.options({ auth: this.auth });
   }
@@ -22,21 +23,21 @@ export class OAuth2 {
       return this;
     }
 
-    console.log(OAuth2.name, 'No refresh token found, authenticating...');
+    console.log(OAuth2.name, "No refresh token found, authenticating...");
 
     const url = this.auth.generateAuthUrl({
-      access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/calendar.events'],
+      access_type: "offline",
+      scope: ["https://www.googleapis.com/auth/calendar.events"],
     });
 
     let resolveGotTokens: Function;
-    const gotTokens = new Promise(res => (resolveGotTokens = res));
+    const gotTokens = new Promise((res) => (resolveGotTokens = res));
 
     const server = express()
-      .get('/auth_callback', async ({ query: { code } }, res) => {
+      .get("/auth_callback", async ({ query: { code } }, res) => {
         const { tokens } = await this.auth.getToken(code as string);
         this.tokens = tokens;
-        res.send('<html><script>window.close()</script></html>');
+        res.send("<html><script>window.close()</script></html>");
         server.close();
         resolveGotTokens();
       })
