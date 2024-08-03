@@ -2,12 +2,12 @@ name: Sync Gcal Sportbit
 
 on:
   workflow_call:
-    secrets: inherit
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    secrets: inherit
     steps:
       - uses: szenius/set-timezone@v1.1
         with:
