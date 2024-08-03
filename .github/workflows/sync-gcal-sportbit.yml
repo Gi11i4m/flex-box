@@ -1,0 +1,32 @@
+name: Sync Gcal Sportbit
+
+on:
+  workflow_call:
+    secrets: inherit
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: szenius/set-timezone@v1.1
+        with:
+          timezoneLinux: "Europe/Brussels"
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: "npm"
+      - run: npm install
+      - name: Run script
+        env:
+          DRY_RUN: ${{secrets.DRY_RUN}}
+          NUMBER_OF_WEEKS_TO_RESERVE: ${{secrets.NUMBER_OF_WEEKS_TO_RESERVE}}
+          GOOGLE_CALENDAR_ID: ${{secrets.GOOGLE_CALENDAR_ID}}
+          GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
+          GOOGLE_CLIENT_SECRET: ${{secrets.GOOGLE_CLIENT_SECRET}}
+          GOOGLE_REDIRECT_URL: ${{secrets.GOOGLE_REDIRECT_URL}}
+          GOOGLE_REFRESH_TOKEN: ${{secrets.GOOGLE_REFRESH_TOKEN}}
+          SUPER7_LOGIN: ${{secrets.SUPER7_LOGIN}}
+          SUPER7_PASS: ${{secrets.SUPER7_PASS}}
+        run: npm start
