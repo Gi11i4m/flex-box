@@ -1,4 +1,4 @@
-name: Sync Gcal Sportbit
+name: Sync Gcal to Sportbit
 
 on:
   workflow_call:
@@ -25,4 +25,8 @@ jobs:
           GOOGLE_REFRESH_TOKEN: ${{secrets.GOOGLE_REFRESH_TOKEN}}
           SUPER7_LOGIN: ${{secrets.SUPER7_LOGIN}}
           SUPER7_PASS: ${{secrets.SUPER7_PASS}}
+          JSONBIN_MASTER_KEY: ${{secrets.JSONBIN_MASTER_KEY}}
+          JSONBIN_ACCESS_KEY: ${{secrets.JSONBIN_ACCESS_KEY}}
+          JSONBIN_BIN_ID: ${{secrets.JSONBIN_BIN_ID}}
+          JSONBIN_ACCOUNT_NAME: ${{secrets.JSONBIN_ACCOUNT_NAME}}
         run: pnpm start

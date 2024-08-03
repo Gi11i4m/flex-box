@@ -8,10 +8,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  sync-gilliam:
-    uses: ./.github/workflows/sync-gcal-sportbit.yml
+  gilliam:
+    uses: ./.github/workflows/sync.yml
     secrets: inherit
 
-  sync-ariane:
-    uses: ./.github/workflows/sync-gcal-sportbit.yml
-    secrets: inherit
+  ariane:
+    uses: ./.github/workflows/sync.yml
+    secrets:
+      DRY_RUN: ${{secrets.DRY_RUN}}
+      NUMBER_OF_WEEKS_TO_RESERVE: ${{secrets.NUMBER_OF_WEEKS_TO_RESERVE}}
+      GOOGLE_CALENDAR_ID: ${{secrets.GOOGLE_CALENDAR_ID}}
+      GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
+      GOOGLE_CLIENT_SECRET: ${{secrets.GOOGLE_CLIENT_SECRET}}
+      GOOGLE_REDIRECT_URL: ${{secrets.GOOGLE_REDIRECT_URL}}
+      GOOGLE_REFRESH_TOKEN: ${{secrets.GOOGLE_REFRESH_TOKEN}}
+      SUPER7_LOGIN: ${{secrets.SUPER7_LOGIN_ARIANE}}
+      SUPER7_PASS: ${{secrets.SUPER7_PASS_ARIANE}}
+      JSONBIN_MASTER_KEY: ${{secrets.JSONBIN_MASTER_KEY}}
+      JSONBIN_ACCESS_KEY: ${{secrets.JSONBIN_ACCESS_KEY}}
+      JSONBIN_BIN_ID: ${{secrets.JSONBIN_BIN_ID}}
+      JSONBIN_ACCOUNT_NAME: ${{secrets.JSONBIN_ACCOUNT_NAME_ARIANE}}
