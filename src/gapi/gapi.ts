@@ -4,7 +4,8 @@ import { NOW } from "../shared/date";
 import { Event } from "../shared/event";
 import { gapiEventToGcalEvent } from "./mapper";
 import { OAuth2 } from "./oauth";
-import { envNumber, isDryRun } from "../shared/environment";
+import { env, envNumber, isDryRun } from "../shared/env";
+import { Database } from "../db/database";
 
 export const CROSSFIT_EVENT_PREFIX = "💪";
 
@@ -12,8 +13,8 @@ export class Gapi {
   auth: OAuth2;
   calendar: calendar_v3.Calendar;
 
-  constructor() {
-    this.auth = new OAuth2();
+  constructor(database: Database) {
+    this.auth = new OAuth2(database);
     this.calendar = google.calendar("v3");
   }
 
@@ -23,9 +24,8 @@ export class Gapi {
   }
 
   async getCrossfitEvents(): Promise<Event[]> {
-    const now = new Date();
     const events = await this.calendar.events.list({
-      calendarId: process.env.GOOGLE_CALENDAR_ID,
+      calendarId: env("GOOGLE_CALENDAR_ID"),
       q: CROSSFIT_EVENT_PREFIX,
       singleEvents: true,
       orderBy: "startTime",
@@ -58,7 +58,7 @@ export class Gapi {
     );
     !isDryRun() &&
       (await this.calendar.events.patch({
-        calendarId: process.env.GOOGLE_CALENDAR_ID,
+        calendarId: env("GOOGLE_CALENDAR_ID"),
         eventId: event.id,
         requestBody: { summary: newEventTitle },
       }));

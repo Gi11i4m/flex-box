@@ -7,16 +7,20 @@ export type Env = {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REDIRECT_URL?: string;
-  GOOGLE_REFRESH_TOKEN?: string;
 
   SUPER7_LOGIN?: string;
   SUPER7_PASS?: string;
+
+  JSONBIN_MASTER_KEY?: string;
+  JSONBIN_ACCESS_KEY?: string;
+  JSONBIN_BIN_ID?: string;
+  JSONBIN_ACCOUNT_NAME?: string;
 };
 
-export function env(
+export function env<T = string>(
   value: keyof Omit<Env, "DRY_RUN" | "NUMBER_OF_WEEKS_TO_RESERVE">,
-): string {
-  return getRawEnvValue(value);
+): T {
+  return getRawEnvValue(value) as T;
 }
 
 export function envBoolean(value: keyof Pick<Env, "DRY_RUN">): boolean {

@@ -27,9 +27,12 @@ export class EventMatcher {
       const matchedSuper7Event = this.super7Events.find((super7Event) =>
         this.matches(super7Event, gcalEvent),
       );
+      if (this.equals(matchedSuper7Event, gcalEvent)) {
+        return acc;
+      }
       return matchedSuper7Event
         ? [...acc, { ...matchedSuper7Event, id: gcalEvent.id }]
-        : acc;
+        : [...acc, { ...gcalEvent, status: "❌" }];
     }, []);
   }
 
@@ -45,5 +48,16 @@ export class EventMatcher {
 
   private matches(event1: Event, event2: Event) {
     return event1.start.equals(event2.start);
+  }
+
+  private equals(event1?: Event, event2?: Event) {
+    if (!event1 || !event2) {
+      return false;
+    }
+    return (
+      event1.title === event2.title &&
+      event1.start.equals(event2.start) &&
+      event1.status === event2.status
+    );
   }
 }

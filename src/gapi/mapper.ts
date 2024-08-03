@@ -7,7 +7,11 @@ export const gapiEventToGcalEvent = (
   eventPrefix = "",
 ): Event => ({
   id: id === null ? undefined : id,
-  title: summary?.replace(eventPrefix, "").trim() || "",
+  title:
+    summary
+      ?.replace(eventPrefix, "")
+      .replaceAll(new RegExp(eventStatusValues.join("|"), "g"), "")
+      .trim() || "",
   start: start?.dateTime ? DateTime.fromISO(start.dateTime) : DateTime.now(),
   status: eventStatusValues.find((status) => summary?.endsWith(status)) || "❌",
 });

@@ -1,16 +1,11 @@
-import axios, {
-  AxiosHeaders,
-  AxiosInstance,
-  AxiosRequestConfig,
-  RawAxiosRequestHeaders,
-} from "axios";
+import axios, { AxiosHeaders, AxiosInstance, AxiosRequestConfig } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import { Event, EventStatus } from "../shared/event";
 import { NOW } from "../shared/date";
 import { DateTime } from "luxon";
 import { Memoize } from "typescript-memoize";
-import { env, envNumber } from "../shared/environment";
+import { env, envNumber } from "../shared/env";
 
 const SUPER7_CROSSFIT_ROOSTER_ID = 4;
 const SUPER7_BASE_URL = "https://crossfitsuper7.sportbitapp.nl/cbm/api/data";

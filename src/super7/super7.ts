@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Event } from "../shared/event";
 import { Super7Website } from "./super7-website";
-import { isDryRun } from "../shared/environment";
+import { isDryRun } from "../shared/env";
 
 export class Super7 {
   website: Super7Website;

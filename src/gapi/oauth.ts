@@ -2,13 +2,13 @@ import express from "express";
 import { Credentials, OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import open from "open";
-import { env } from "../shared/environment";
+import { env } from "../shared/env";
+import { Database } from "../db/database";
 
 export class OAuth2 {
-  private _tokens?: Credentials;
-  private auth: OAuth2Client;
+  private readonly auth: OAuth2Client;
 
-  constructor() {
+  constructor(private database: Database) {
     this.auth = new google.auth.OAuth2({
       clientId: env("GOOGLE_CLIENT_ID"),
       clientSecret: env("GOOGLE_CLIENT_SECRET"),
@@ -18,13 +18,20 @@ export class OAuth2 {
   }
 
   async authenticate() {
-    if (this.tokens?.refresh_token) {
-      this.auth.setCredentials(this.tokens);
+    const refreshToken = await this.database.getRefreshKey();
+    if (refreshToken) {
+      console.log("🔓 Refresh token found, authenticating...\n");
+      await this.setTokens({ refresh_token: refreshToken });
+      await this.auth.refreshAccessToken();
       return this;
     }
 
-    console.log(OAuth2.name, "No refresh token found, authenticating...");
+    console.log("🔒 No refresh token found, authenticating...\n");
+    await this.authenticateWithoutCredentials();
+    return this;
+  }
 
+  private async authenticateWithoutCredentials() {
     const url = this.auth.generateAuthUrl({
       access_type: "offline",
       scope: ["https://www.googleapis.com/auth/calendar.events"],
@@ -36,8 +43,15 @@ export class OAuth2 {
     const server = express()
       .get("/auth_callback", async ({ query: { code } }, res) => {
         const { tokens } = await this.auth.getToken(code as string);
-        this.tokens = tokens;
-        res.send("<html><script>window.close()</script></html>");
+        await this.setTokens(tokens);
+        res.send(
+          `
+<html lang="html">
+<script>window.close()</script>
+<body><h3>Dit venster mag gesloten worden</h3></body>
+</html>
+`,
+        );
         server.close();
         resolveGotTokens();
       })
@@ -45,24 +59,14 @@ export class OAuth2 {
 
     open(url);
     await gotTokens;
-    return this;
   }
 
-  private get tokens(): Credentials | undefined {
-    if (this._tokens?.refresh_token) {
-      return this._tokens;
+  private async setTokens(tokens: Credentials | undefined) {
+    if (tokens) {
+      this.auth.setCredentials(tokens);
     }
-    if (process.env.GOOGLE_REFRESH_TOKEN) {
-      return {
-        ...this._tokens,
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-      };
+    if (tokens?.refresh_token) {
+      await this.database.setRefreshKey(tokens.refresh_token);
     }
-    return this._tokens;
-  }
-
-  private set tokens(tokens: Credentials | undefined) {
-    console.log(tokens);
-    this._tokens = tokens;
   }
 }
