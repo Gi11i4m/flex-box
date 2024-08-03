@@ -15,8 +15,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18.x
-          cache: "npm"
-      - run: npm install
+          cache: "pnpm"
+      - run: pnpm install
       - name: Run script
         env:
           DRY_RUN: ${{secrets.DRY_RUN}}
@@ -28,4 +28,4 @@ jobs:
           GOOGLE_REFRESH_TOKEN: ${{secrets.GOOGLE_REFRESH_TOKEN}}
           SUPER7_LOGIN: ${{secrets.SUPER7_LOGIN}}
           SUPER7_PASS: ${{secrets.SUPER7_PASS}}
-        run: npm start
+        run: pnpm start
