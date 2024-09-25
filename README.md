@@ -11,3 +11,7 @@ This script is run twice a day to have a recent idea of event statusses in Googl
 Want to run this yourself? Fork this project, set up GitHub Actions, create a Google app and fill in the necessary ENV variables on GitHub. You can find these in the GitHub Actions workflow file `flexbox.yml`.
 
 You can run the script locally by creating a `.env` file with the same variables. To get the GOOGLE_REFRESH_TOKEN you'll have to run it once locally and log the refresh token to copy it (`oauth.ts - set tokens()`).
+
+## OAuth2
+
+Confused about OAuth2, me 2. Here's a [clear article](https://medium.com/starthinker/google-oauth-2-0-access-token-and-refresh-token-explained-cccf2fc0a6d9).
