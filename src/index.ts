@@ -5,6 +5,7 @@ import {
 } from "./shared/event-matcher";
 import { logEvents } from "./shared/logger";
 import { gcalEventToSuper7Event } from "./shared/mapper";
+import { Event } from "./shared/event";
 import { Super7 } from "./super7/super7";
 import { clear } from "typescript-memoize";
 import { SUPER7_WEBSITE_MEMOIZE_TAG } from "./super7/super7-website";
@@ -41,9 +42,15 @@ Promise.all([
     chalk.bold`\n🎟️ Booking ${eventMatcher.eventsToBook.length} events`,
   );
   logEvents(eventMatcher.eventsToBook);
+  const failedEvents: Event[] = [];
   for (let event of eventMatcher.eventsToBook) {
-    await super7.bookEvent(gcalEventToSuper7Event(event));
+    await super7
+      .bookEvent(gcalEventToSuper7Event(event))
+      .catch(() => failedEvents.push(event));
   }
+
+  console.log(chalk.bold`\n⚠️ Failed to book ${failedEvents.length} events`);
+  logEvents(failedEvents);
 
   clear([SUPER7_WEBSITE_MEMOIZE_TAG, EVENT_MATCHER_MEMOIZE_TAG]);
   eventMatcher.super7Events = await super7.getReservations();
