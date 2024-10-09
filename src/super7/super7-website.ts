@@ -83,7 +83,8 @@ export class Super7Website {
         title: event.titel.trim(),
         start: DateTime.fromISO(event.start),
         status: getEventStatus(event),
-      }));
+      }))
+      .filter((event) => event.start > NOW);
   }
 
   @Memoize({ tags: [SUPER7_WEBSITE_MEMOIZE_TAG] })
