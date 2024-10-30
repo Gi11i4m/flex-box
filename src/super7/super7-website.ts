@@ -84,7 +84,7 @@ export class Super7Website {
         start: DateTime.fromISO(event.start),
         status: getEventStatus(event),
       }))
-      .filter((event) => event.start > NOW);
+      .filter((event) => NOW < event.start);
   }
 
   @Memoize({ tags: [SUPER7_WEBSITE_MEMOIZE_TAG] })

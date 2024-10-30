@@ -8,4 +8,4 @@ export const dateTimeFormat: DateTimeFormatOptions = {
   timeZone: "Europe/Brussels",
 };
 
-export const NOW = DateTime.now();
+export const NOW = DateTime.now().startOf("day");
