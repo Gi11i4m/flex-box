@@ -15,8 +15,8 @@ jobs:
   ariane:
     uses: ./.github/workflows/sync.yml
     secrets:
-      DRY_RUN: ${{secrets.DRY_RUN}}
-      NUMBER_OF_WEEKS_TO_RESERVE: ${{secrets.NUMBER_OF_WEEKS_TO_RESERVE}}
+      DRY_RUN: ${{vars.DRY_RUN}}
+      NUMBER_OF_WEEKS_TO_RESERVE: ${{vars.NUMBER_OF_WEEKS_TO_RESERVE}}
       GOOGLE_CALENDAR_ID: ${{secrets.GOOGLE_CALENDAR_ID_ARIANE}}
       GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
       GOOGLE_CLIENT_SECRET: ${{secrets.GOOGLE_CLIENT_SECRET}}
