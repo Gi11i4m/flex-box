@@ -6,6 +6,7 @@ import { gapiEventToGcalEvent } from "./mapper";
 import { OAuth2 } from "./oauth";
 import { env, envNumber, isDryRun } from "../shared/env";
 import { Database } from "../db/database";
+import Schema$Event = calendar_v3.Schema$Event;
 
 export const CROSSFIT_EVENT_PREFIX = "💪";
 
@@ -42,9 +43,16 @@ export class Gapi {
     }
 
     return (
-      events.data.items?.map((event) =>
-        gapiEventToGcalEvent(event, CROSSFIT_EVENT_PREFIX),
-      ) || []
+      events.data.items
+        ?.filter((event) => !this.haveIDeclinedThisEvent(event))
+        ?.map((event) => gapiEventToGcalEvent(event, CROSSFIT_EVENT_PREFIX)) ||
+      []
+    );
+  }
+
+  private haveIDeclinedThisEvent(event: Schema$Event): boolean {
+    return !!event.attendees?.find(
+      (att) => att.self && att.responseStatus === "declined",
     );
   }
 

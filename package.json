@@ -3,7 +3,8 @@
   "author": "Gi11i4m",
   "license": "ISC",
   "scripts": {
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "pre-commit": "pnpm install && prettier . --write && tsc --noEmit"
   },
   "dependencies": {
     "axios": "^1.7.7",

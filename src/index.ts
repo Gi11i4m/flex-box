@@ -12,8 +12,7 @@ import { SUPER7_WEBSITE_MEMOIZE_TAG } from "./super7/super7-website";
 import { Database } from "./db/database";
 import chalk from "chalk";
 
-require("dotenv").config({ path: ".env.ariane" });
-require("dotenv").config({ path: ".env" });
+require("dotenv").config({ path: [".env.ariane", ".env"] });
 
 const database = new Database();
 const gapi = new Gapi(database);
