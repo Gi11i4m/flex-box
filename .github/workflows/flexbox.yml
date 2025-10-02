@@ -8,6 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
+  gilliam:
+    uses: ./.github/workflows/sync.yml
+    secrets: inherit
+
   ariane:
     uses: ./.github/workflows/sync.yml
     secrets:
@@ -24,7 +28,3 @@ jobs:
       JSONBIN_ACCESS_KEY: ${{secrets.JSONBIN_ACCESS_KEY}}
       JSONBIN_BIN_ID: ${{secrets.JSONBIN_BIN_ID}}
       JSONBIN_ACCOUNT_NAME: ${{secrets.JSONBIN_ACCOUNT_NAME_ARIANE}}
-
-  gilliam:
-    uses: ./.github/workflows/sync.yml
-    secrets: inherit

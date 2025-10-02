@@ -7,7 +7,7 @@ X-Xsrf-Token: {{xsrfToken}}
 
 {
   "username": "{{username}}",
-  "password": "{{password}}",
+  "password": "{{super7_password}}",
   "remember": false
 }
 
