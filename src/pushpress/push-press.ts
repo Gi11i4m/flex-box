@@ -1,13 +1,13 @@
 import chalk from "chalk";
 import { Event } from "../shared/event";
-import { Super7Website } from "./super7-website";
+import { PushPressWebsite } from "./push-press-website";
 import { isDryRun } from "../shared/env";
 
-export class Super7 {
-  website: Super7Website;
+export class PushPress {
+  website: PushPressWebsite;
 
   constructor() {
-    this.website = new Super7Website();
+    this.website = new PushPressWebsite();
   }
 
   async authenticate() {

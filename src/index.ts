@@ -1,26 +1,27 @@
-import { Gapi } from "./gapi/gapi";
+import { Gapi } from './gapi/gapi';
 import {
   EVENT_MATCHER_MEMOIZE_TAG,
   EventMatcher,
-} from "./shared/event-matcher";
-import { logEvents } from "./shared/logger";
-import { gcalEventToSuper7Event } from "./shared/mapper";
-import { Event } from "./shared/event";
-import { Super7 } from "./super7/super7";
-import { clear } from "typescript-memoize";
-import { SUPER7_WEBSITE_MEMOIZE_TAG } from "./super7/super7-website";
-import { Database } from "./db/database";
-import chalk from "chalk";
+} from './shared/event-matcher';
+import { logEvents } from './shared/logger';
+import { gcalEventToSuper7Event } from './shared/mapper';
+import { Event } from './shared/event';
+import { clear } from 'typescript-memoize';
+import { Database } from './db/database';
+import chalk from 'chalk';
+import { PushPress } from './pushpress/push-press';
+import { SUPER7_WEBSITE_MEMOIZE_TAG } from './pushpress/push-press-website';
 
-require("dotenv").config({ path: [".env.ariane", ".env"] });
+// Running with Gilliam account ATM
+require('dotenv').config({ path: [/*'.env.ariane',*/ '.env'] });
 
 const database = new Database();
 const gapi = new Gapi(database);
-const super7 = new Super7();
+const super7 = new PushPress();
 
 Promise.all([
-  gapi.authenticate().then((gapi) => gapi.getCrossfitEvents()),
-  super7.authenticate().then((super7) => super7.getReservations()),
+  gapi.authenticate().then(gapi => gapi.getCrossfitEvents()),
+  super7.authenticate().then(super7 => super7.getReservations()),
 ]).then(async ([gcalEvents, super7Events]) => {
   console.log(chalk.bold`Found ${gcalEvents.length} Gcal events:`);
   logEvents(gcalEvents, { newline: true });
