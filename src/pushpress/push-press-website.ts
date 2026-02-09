@@ -5,7 +5,7 @@ import { Event } from '../shared/event';
 import { NOW } from '../shared/date';
 import { DateTime } from 'luxon';
 import { Memoize } from 'typescript-memoize';
-import { env } from '../shared/env';
+import { env, envNumber } from '../shared/env';
 import { GraphQLClient, gql } from 'graphql-request';
 
 export const SUPER7_WEBSITE_MEMOIZE_TAG = 'super7_website_memoize';
@@ -61,6 +61,7 @@ export class PushPressWebsite {
       query GetUpcomingReservations {
         reservations: getUpcomingReservations {
           id
+          uuid
           reservationTitle
           calendarItemUuid
           isActive
@@ -78,17 +79,17 @@ export class PushPressWebsite {
               link
             }
             mainCoach {
-              firstName
-              lastName
-              primaryImage
+              ...ProfileFragment
             }
           }
         }
       }
+
+      ${ProfileFragment}
     `);
     return reservations
       .map<Event>(r => ({
-        id: String(r.id),
+        id: String(r.uuid),
         title: r.reservationTitle.trim(),
         start: DateTime.fromISO(r.rawStartTime),
         status: r.waitlisted ? '⏳' : '✅',
@@ -99,8 +100,8 @@ export class PushPressWebsite {
   @Memoize({ tags: [SUPER7_WEBSITE_MEMOIZE_TAG] })
   private async getEvents(): Promise<PushPressWebsiteEvent[]> {
     const graphql = this.graphQlClient;
-    // TODO: get events for 2 weeks
-    graphql.request(gql`
+    const data = await graphql.request(
+      gql`
       query GetClasses($classStartDate: Date!, classEndDate: Date!) {
         classes: getCalendarItems(
           getCalendarItemsInput: {
@@ -129,9 +130,14 @@ export class PushPressWebsite {
       }
 
       ${ProfileFragment}
-    `);
-    console.log();
-    process.exit();
+    `,
+      {
+        classStartDate: NOW.toJSDate(),
+        classEndDate: NOW.plus({
+          weeks: envNumber('NUMBER_OF_WEEKS_TO_RESERVE'),
+        }).toJSDate(),
+      },
+    );
   }
 
   @Memoize({
@@ -164,8 +170,35 @@ export class PushPressWebsite {
     );
   }
 
-  async removeReservation(eventId: string) {
-    return await this.http.delete<void>(`/events/${eventId}/deelname/`);
+  async removeReservation(event: Event) {
+    const graphql = this.graphQlClient;
+    try {
+      await graphql.request<void>(
+        gql`
+          mutation RemoveFromWaitlist($reservationId: String!) {
+            removeFromWaitlist(
+              removeFromWaitlistInput: { reservationId: $reservationId }
+            ) {
+              uuid
+            }
+          }
+        `,
+        { reservationId: event.id },
+      );
+    } finally {
+      await graphql.request<void>(
+        gql`
+          mutation CancelReservation($reservationId: String!) {
+            cancelReservation(
+              cancelReservationInput: { reservationId: $reservationId }
+            ) {
+              uuid
+            }
+          }
+        `,
+        { reservationId: event.id },
+      );
+    }
   }
 
   private get graphQlClient(): GraphQLClient {
@@ -226,6 +259,7 @@ type PushPressLoginInfo = {
 
 type PushPressReservation = {
   id: string;
+  uuid: string;
   reservationTitle: string;
   calendarItemUuid: string;
   isActive: boolean;
@@ -246,6 +280,7 @@ type PushPressReservation = {
     mainCoach?: Profile;
   };
 };
+const ReservationFragment = gql``;
 
 type Profile = {
   firstName: string;

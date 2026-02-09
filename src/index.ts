@@ -12,7 +12,8 @@ import chalk from 'chalk';
 import { PushPress } from './pushpress/push-press';
 import { SUPER7_WEBSITE_MEMOIZE_TAG } from './pushpress/push-press-website';
 
-// Running with Gilliam account ATM
+// TODO: only allow booking in Leuven
+// TODO: running with Gilliam account ATM
 require('dotenv').config({ path: [/*'.env.ariane',*/ '.env'] });
 
 const database = new Database();
@@ -34,6 +35,7 @@ Promise.all([
     chalk.bold`\n🗑️ Deleting ${eventMatcher.eventsToDelete.length} events`,
   );
   logEvents(eventMatcher.eventsToDelete);
+
   for (let event of eventMatcher.eventsToDelete) {
     await super7.deleteReservation(event);
   }
@@ -44,6 +46,8 @@ Promise.all([
   logEvents(eventMatcher.eventsToBook);
   const failedEvents: Event[] = [];
   for (let event of eventMatcher.eventsToBook) {
+    // TODO: implement booking method
+    process.exit();
     await super7
       .bookEvent(gcalEventToSuper7Event(event))
       .catch(() => failedEvents.push(event));

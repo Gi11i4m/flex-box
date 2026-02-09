@@ -1,7 +1,7 @@
-import chalk from "chalk";
-import { Event } from "../shared/event";
-import { PushPressWebsite } from "./push-press-website";
-import { isDryRun } from "../shared/env";
+import chalk from 'chalk';
+import { Event } from '../shared/event';
+import { PushPressWebsite } from './push-press-website';
+import { isDryRun } from '../shared/env';
 
 export class PushPress {
   website: PushPressWebsite;
@@ -23,7 +23,7 @@ export class PushPress {
     const eventId = await this.website.eventIdFor(event);
     console.log(
       chalk.bold.green(
-        `${eventId ? "Making" : "Not making"} reservation ${
+        `${eventId ? 'Making' : 'Not making'} reservation ${
           event.title
         } at ${event.start.toLocaleString()}, id: ${eventId}`,
       ),
@@ -37,18 +37,17 @@ export class PushPress {
   }
 
   async deleteReservation(event: Event): Promise<void> {
-    const eventId = await this.website.eventIdFor(event);
     console.log(
       chalk.bold.red(
-        `${eventId ? "Deleting" : "Not deleting"} reservation ${
+        `Deleting reservation ${
           event.title
-        } at ${event.start.toLocaleString()}, id: ${eventId}`,
+        } at ${event.start.toLocaleString()}, id: ${event.id}`,
       ),
     );
-    if (!eventId || isDryRun()) {
+    if (isDryRun()) {
       return;
     }
 
-    await this.website.removeReservation(eventId);
+    await this.website.removeReservation(event);
   }
 }
