@@ -60,16 +60,7 @@ export class PushPressWebsite {
     }>(gql`
       query GetUpcomingReservations {
         reservations: getUpcomingReservations {
-          id
-          uuid
-          reservationTitle
-          calendarItemUuid
-          isActive
-          lateCancel
-          waitlisted
-          rawStartTime: reservationStart
-          rawEndTime: reservationEnd
-          rawStatus: status
+          ...PushPressReservationFragment
           calendarItem {
             calendarItemType {
               name
@@ -79,13 +70,14 @@ export class PushPressWebsite {
               link
             }
             mainCoach {
-              ...ProfileFragment
+              ...PushPressProfileFragment
             }
           }
         }
       }
 
-      ${ProfileFragment}
+      ${PushPressProfileFragment}
+      ${PushPressReservationFragment}
     `);
     return reservations
       .map<Event>(r => ({
@@ -97,40 +89,30 @@ export class PushPressWebsite {
       .filter(event => NOW < event.start);
   }
 
+  // TODO: filter out Aarschot events
   @Memoize({ tags: [SUPER7_WEBSITE_MEMOIZE_TAG] })
-  private async getEvents(): Promise<PushPressWebsiteEvent[]> {
+  private async getClasses(): Promise<PushPressClass[]> {
     const graphql = this.graphQlClient;
-    const data = await graphql.request(
+    const { classes } = await graphql.request<{ classes: PushPressClass[] }>(
       gql`
-      query GetClasses($classStartDate: Date!, classEndDate: Date!) {
-        classes: getCalendarItems(
-          getCalendarItemsInput: {
-            startDate: $classStartDate
-            endDate: $classEndDate
-            calendarSessionTypeId: 2
-          }
-        ) {
-          uuid
-          title
-          attendanceCap
-          classType: typeName
-          spotsAvailable
-          isAllDay
-          registrationStartOffset
-          registrationEndOffset
-          startTime: startDatetime
-          endTime: endDatetime
-          location {
-            name
-          }
-          mainCoach {
-            ...ProfileFragment
+        query GetClasses($classStartDate: Date!, $classEndDate: Date!) {
+          classes: getCalendarItems(
+            getCalendarItemsInput: {
+              startDate: $classStartDate
+              endDate: $classEndDate
+              calendarSessionTypeId: 2
+            }
+          ) {
+            ...PushPressClassFragment
+            mainCoach {
+              ...PushPressProfileFragment
+            }
           }
         }
-      }
 
-      ${ProfileFragment}
-    `,
+        ${PushPressClassFragment}
+        ${PushPressProfileFragment}
+      `,
       {
         classStartDate: NOW.toJSDate(),
         classEndDate: NOW.plus({
@@ -138,36 +120,157 @@ export class PushPressWebsite {
         }).toJSDate(),
       },
     );
+    return classes;
   }
 
+  // TODO: filter out Aarschot events
   @Memoize({
     tags: [SUPER7_WEBSITE_MEMOIZE_TAG],
     hashFunction: (args: DateTime) => args.toISODate(),
   })
-  private async getEventsForDay(
-    date: DateTime,
-  ): Promise<PushPressWebsiteEvent[]> {
-    const {
-      data: { ochtend, middag, avond },
-    } = await this.http.get(
-      `/events/?datum=${date.toFormat('yyyy-MM-dd')}&rooster=${4}`,
+  private async getClassesForDay(date: DateTime): Promise<PushPressClass[]> {
+    const classes = await this.getClasses();
+    return classes.filter(
+      c => DateTime.fromISO(c.startTime).diff(date).days < 1,
     );
-    return [...ochtend, ...middag, ...avond];
   }
 
   async eventIdFor(event: Event): Promise<string | undefined> {
-    const eventsForMatchingDay = await this.getEventsForDay(event.start);
+    const eventsForMatchingDay = await this.getClassesForDay(event.start);
     const maybeMatchedEvent = eventsForMatchingDay.find(e =>
-      DateTime.fromISO(e.start).equals(event.start),
+      DateTime.fromISO(e.startTime).equals(event.start),
     );
-    return maybeMatchedEvent ? String(maybeMatchedEvent.id) : undefined;
+    return maybeMatchedEvent ? String(maybeMatchedEvent.uuid) : undefined;
+  }
+
+  @Memoize({ tags: [SUPER7_WEBSITE_MEMOIZE_TAG] })
+  private async getProfile(): Promise<PushPressProfileDetails> {
+    const graphql = this.graphQlClient;
+    const loginInfo = this.graphql?.loginInfo;
+    const client = loginInfo?.clients[0];
+    if (!client) throw Error('The PushPress client profile is not available');
+
+    const { profile } = await graphql.request<{
+      profile: PushPressProfileDetails;
+    }>(
+      gql`
+        query GetProfiles($clientUuid: String!, $userUuid: String!) {
+          profile: getProfile(
+            getProfileInput: { clientUuid: $clientUuid, userUuid: $userUuid }
+          ) {
+            ...ProfileFragment
+            linkedAccounts {
+              ...ProfileFragment
+              __typename
+            }
+            __typename
+          }
+          __typename
+        }
+
+        ${PushPressProfileDetailsFragment}
+      `,
+      {
+        clientUuid: client.clientUuid,
+        userUuid: client.userUuid,
+      },
+    );
+
+    return profile;
   }
 
   async makeReservation(eventId: string) {
-    return await this.http.post<void>(
-      `/events/${eventId}/deelname/`,
-      undefined,
+    const graphql = this.graphQlClient;
+    const subscription = await this.getSubscription();
+    const profile = await this.getProfile();
+    try {
+      await graphql.request<void>(
+        gql`
+          mutation CreateReservation(
+            $clientUserUuid: String!
+            $calendarItemUuid: String!
+            $subscriptionUuid: String!
+            $source: String
+          ) {
+            createReservation(
+              createReservationInput: {
+                clientUserUuid: $clientUserUuid
+                calendarItemUuid: $calendarItemUuid
+                subscriptionUuid: $subscriptionUuid
+                source: $source
+              }
+            ) {
+              uuid
+            }
+          }
+        `,
+        {
+          clientUserUuid: profile.clientUserUuid,
+          calendarItemUuid: eventId,
+          subscriptionUuid: subscription.subscriptionUuid,
+          source: 'member_app_web',
+        },
+      );
+    } catch (error) {
+      console.info('Joining waitlist.', error);
+      await graphql.request<void>(
+        gql`
+          mutation JoinWaitlist(
+            $clientUserUuid: String!
+            $calendarItemUuid: String!
+            $subscriptionUuid: String!
+            $waitlistExpirationMins: Float!
+          ) {
+            joinWaitlist(
+              joinWaitlistInput: {
+                clientUserUuid: $clientUserUuid
+                calendarItemUuid: $calendarItemUuid
+                subscriptionUuid: $subscriptionUuid
+                waitlistExpirationMins: $waitlistExpirationMins
+              }
+            ) {
+              uuid
+              __typename
+            }
+            __typename
+          }
+        `,
+        {
+          clientUserUuid: profile.clientUserUuid,
+          calendarItemUuid: eventId,
+          subscriptionUuid: subscription.subscriptionUuid,
+          waitlistExpirationMins: 60,
+        },
+      );
+    }
+  }
+
+  private async getSubscription(): Promise<PushPressSubscription> {
+    const profile = await this.getProfile();
+    const activeSubscriptions = profile.subscriptions.filter(
+      subscription =>
+        subscription.active &&
+        subscription.status === 'active' &&
+        subscription.planObject.name !== 'Insurance',
     );
+    if (!activeSubscriptions.length) {
+      throw Error('No active PushPress subscription available');
+    }
+
+    const usableSubscription = activeSubscriptions.find(subscription => {
+      const { available } = subscription.currentPeriodUsage;
+      return available > 0 || available === -1;
+    });
+    if (usableSubscription) return usableSubscription;
+
+    const now = NOW.startOf('day');
+    const dateFiltered = activeSubscriptions.filter(subscription => {
+      if (!subscription.endDate) return true;
+      const endDate = DateTime.fromISO(subscription.endDate).startOf('day');
+      return endDate >= now;
+    });
+
+    return dateFiltered[0] ?? activeSubscriptions[0];
   }
 
   async removeReservation(event: Event) {
@@ -257,6 +360,40 @@ type PushPressLoginInfo = {
   refreshToken: string;
 };
 
+type PushPressClass = {
+  uuid: string;
+  title: string;
+  attendanceCap: number | null;
+  classType: string;
+  spotsAvailable: number;
+  isAllDay: boolean;
+  registrationStartOffset: number | null;
+  registrationEndOffset: number | null;
+  startTime: string;
+  endTime: string;
+  location: {
+    name: string;
+  };
+  mainCoach?: PushPressProfile;
+};
+const PushPressClassFragment = gql`
+  fragment PushPressClassFragment on Class {
+    uuid
+    title
+    attendanceCap
+    classType: typeName
+    spotsAvailable
+    isAllDay
+    registrationStartOffset
+    registrationEndOffset
+    startTime: startDatetime
+    endTime: endDatetime
+    location {
+      name
+    }
+  }
+`;
+
 type PushPressReservation = {
   id: string;
   uuid: string;
@@ -277,22 +414,180 @@ type PushPressReservation = {
       name: string;
       link: string;
     };
-    mainCoach?: Profile;
+    mainCoach?: PushPressProfile;
   };
 };
-const ReservationFragment = gql``;
+const PushPressReservationFragment = gql`
+  fragment PushPressReservationFragment on Registration {
+    id
+    uuid
+    reservationTitle
+    calendarItemUuid
+    isActive
+    lateCancel
+    waitlisted
+    rawStartTime: reservationStart
+    rawEndTime: reservationEnd
+    rawStatus: status
+  }
+`;
 
-type Profile = {
+type PushPressProfile = {
   firstName: string;
   lastName: string;
   primaryImage: string;
 };
-const ProfileFragment = gql`
-  fragment ProfileFragment on Profile {
+const PushPressProfileFragment = gql`
+  fragment PushPressProfileFragment on Profile {
     userUuid
     firstName
     lastName
     gender
     primaryImage
+  }
+`;
+
+type PushPressProfileMembershipStatus = {
+  code: string;
+  __typename: 'ProfileMembershipStatus';
+};
+
+type PushPressCurrentPeriodUsage = {
+  limit: number;
+  period: string;
+  periodStart: string;
+  periodEnd: string;
+  checkins: number;
+  reservations: number;
+  lateCancels: number;
+  waitlists: number;
+  noShows: number;
+  available: number;
+  __typename: 'CurrentPeriodUsage';
+};
+
+type PushPressSubscriptionPlanCalendarItemType = {
+  uuid: string;
+  __typename: 'SubscriptionPlanCalendarItemType';
+};
+
+type PushPressSubscriptionPlanObject = {
+  uuid: string;
+  name: string;
+  allowCheckins: boolean;
+  acceptedTypeUuids: PushPressSubscriptionPlanCalendarItemType[];
+  type: string;
+  interval: number;
+  intervalType: string;
+  __typename: 'SubscriptionPlanSimple';
+};
+
+type PushPressSubscription = {
+  subscriptionUuid: string;
+  status: string;
+  active: boolean;
+  startDate: string;
+  endDate: string;
+  totalOccurrences: number;
+  plan: string;
+  currentPeriodUsage: PushPressCurrentPeriodUsage;
+  planObject: PushPressSubscriptionPlanObject;
+  __typename: 'Subscription';
+};
+
+type PushPressProfileDetails = {
+  clientUserUuid: string;
+  email: string;
+  username: string;
+  clientUuid: string;
+  userUuid: string;
+  parentUserId: number;
+  firstName: string;
+  lastName: string;
+  birthday: string;
+  gender: string;
+  phone: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  emergencyName: string;
+  emergencyPhone: string | null;
+  emergencyRelationship: string;
+  primaryImage: string;
+  activateTimestamp: number;
+  membershipStatus: PushPressProfileMembershipStatus;
+  subscriptions: PushPressSubscription[];
+  linkedAccounts: PushPressProfileDetails[];
+  __typename: 'Profile';
+};
+
+const PushPressProfileDetailsFragment = gql`
+  fragment ProfileFragment on Profile {
+    clientUserUuid
+    email
+    username
+    clientUuid
+    userUuid
+    parentUserId
+    firstName
+    lastName
+    birthday
+    gender
+    phone
+    address1
+    address2
+    city
+    state
+    postalCode
+    country
+    emergencyName
+    emergencyPhone
+    emergencyRelationship
+    primaryImage
+    activateTimestamp
+    membershipStatus {
+      code
+      __typename
+    }
+    subscriptions {
+      subscriptionUuid
+      status
+      active
+      startDate
+      endDate
+      totalOccurrences
+      plan
+      currentPeriodUsage {
+        limit
+        period
+        periodStart
+        periodEnd
+        checkins
+        reservations
+        lateCancels
+        waitlists
+        noShows
+        available
+        __typename
+      }
+      planObject {
+        uuid
+        name
+        allowCheckins
+        acceptedTypeUuids: planCalendarItemTypes {
+          uuid: calenderItemTypeUuid
+          __typename
+        }
+        type
+        interval
+        intervalType
+        __typename
+      }
+      __typename
+    }
+    __typename
   }
 `;

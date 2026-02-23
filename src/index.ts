@@ -46,11 +46,10 @@ Promise.all([
   logEvents(eventMatcher.eventsToBook);
   const failedEvents: Event[] = [];
   for (let event of eventMatcher.eventsToBook) {
-    // TODO: implement booking method
-    process.exit();
-    await super7
-      .bookEvent(gcalEventToSuper7Event(event))
-      .catch(() => failedEvents.push(event));
+    await super7.bookEvent(gcalEventToSuper7Event(event)).catch(e => {
+      console.error(e);
+      failedEvents.push(event);
+    });
   }
 
   console.log(chalk.bold`\n⚠️ Failed to book ${failedEvents.length} events`);
