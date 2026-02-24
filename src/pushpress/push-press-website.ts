@@ -83,7 +83,7 @@ export class PushPressWebsite {
       .map<Event>(r => ({
         id: String(r.uuid),
         title: r.reservationTitle.trim(),
-        start: DateTime.fromISO(r.rawStartTime),
+        start: DateTime.fromISO(r.rawStartTime).setZone('Europe/Brussels'),
         status: r.waitlisted ? '⏳' : '✅',
       }))
       .filter(event => NOW < event.start);
@@ -120,7 +120,20 @@ export class PushPressWebsite {
         }).toJSDate(),
       },
     );
-    return classes;
+    return classes
+      .filter(c => c.startTime && c.endTime)
+      .map(
+        ({ startTime, endTime, ...rest }) =>
+          ({
+            ...rest,
+            startTime: DateTime.fromISO(startTime!)
+              .setZone('Europe/Brussels')
+              .toISO(),
+            endTime: DateTime.fromISO(endTime!)
+              .setZone('Europe/Brussels')
+              .toISO(),
+          }) as PushPressClass,
+      );
   }
 
   // TODO: filter out Aarschot events
@@ -309,23 +322,6 @@ export class PushPressWebsite {
     return this.graphql.client;
   }
 }
-
-/** @deprecated */
-type PushPressWebsiteEvent = {
-  id: number;
-  start: string;
-  eind: string;
-  titel: string;
-  trainer: { naam: string; telefoonnummer: string | null };
-  ruimte: { naam: 'Hoofdruimte' };
-  aantalDeelnemers: number;
-  maxDeelnemers: number;
-  type: { id: 1; hexkleur: string; naam: string };
-  aangemeld: boolean;
-  opWachtlijst: boolean;
-  buddyAangemeld: boolean;
-  meerdereTrainers: boolean;
-};
 
 type PushPressLoginInfo = {
   accessToken: string;

@@ -1,14 +1,13 @@
-import { google } from "googleapis";
-import { calendar_v3 } from "googleapis/build/src/apis/calendar";
-import { NOW } from "../shared/date";
-import { Event } from "../shared/event";
-import { gapiEventToGcalEvent } from "./mapper";
-import { OAuth2 } from "./oauth";
-import { env, envNumber, isDryRun } from "../shared/env";
-import { Database } from "../db/database";
+import { google, calendar_v3 } from 'googleapis';
+import { NOW } from '../shared/date';
+import { Event } from '../shared/event';
+import { gapiEventToGcalEvent } from './mapper';
+import { OAuth2 } from './oauth';
+import { env, envNumber, isDryRun } from '../shared/env';
+import { Database } from '../db/database';
 import Schema$Event = calendar_v3.Schema$Event;
 
-export const CROSSFIT_EVENT_PREFIX = "💪";
+export const CROSSFIT_EVENT_PREFIX = '💪';
 
 export class Gapi {
   auth: OAuth2;
@@ -16,7 +15,7 @@ export class Gapi {
 
   constructor(database: Database) {
     this.auth = new OAuth2(database);
-    this.calendar = google.calendar("v3");
+    this.calendar = google.calendar('v3');
   }
 
   async authenticate() {
@@ -25,34 +24,33 @@ export class Gapi {
   }
 
   async getCrossfitEvents(): Promise<Event[]> {
-    const events = await this.calendar.events.list({
-      calendarId: env("GOOGLE_CALENDAR_ID"),
+    const params: calendar_v3.Params$Resource$Events$List = {
+      calendarId: env('GOOGLE_CALENDAR_ID') || undefined,
       q: CROSSFIT_EVENT_PREFIX,
       singleEvents: true,
-      orderBy: "startTime",
-      timeMin: NOW.toISO(),
+      orderBy: 'startTime',
+      timeMin: NOW.toISO()!,
       timeMax: NOW.plus({
-        week: envNumber("NUMBER_OF_WEEKS_TO_RESERVE"),
-      }).toISO(),
-    });
+        week: envNumber('NUMBER_OF_WEEKS_TO_RESERVE'),
+      }).toISO()!,
+    };
 
-    if (events.status !== 200) {
-      throw new Error(
-        `Failed to fetch Google Calendar events: ${events.statusText}`,
-      );
+    const response = await this.calendar.events.list(params);
+
+    if (!response.data?.items) {
+      return [];
     }
 
-    return (
-      events.data.items
-        ?.filter((event) => !this.haveIDeclinedThisEvent(event))
-        ?.map((event) => gapiEventToGcalEvent(event, CROSSFIT_EVENT_PREFIX)) ||
-      []
-    );
+    return response.data.items
+      .filter((event: Schema$Event) => !this.haveIDeclinedThisEvent(event))
+      .map((event: Schema$Event) =>
+        gapiEventToGcalEvent(event, CROSSFIT_EVENT_PREFIX),
+      );
   }
 
   private haveIDeclinedThisEvent(event: Schema$Event): boolean {
     return !!event.attendees?.find(
-      (att) => att.self && att.responseStatus === "declined",
+      att => att.self && att.responseStatus === 'declined',
     );
   }
 
@@ -66,7 +64,7 @@ export class Gapi {
     );
     !isDryRun() &&
       (await this.calendar.events.patch({
-        calendarId: env("GOOGLE_CALENDAR_ID"),
+        calendarId: env('GOOGLE_CALENDAR_ID'),
         eventId: event.id,
         requestBody: { summary: newEventTitle },
       }));
