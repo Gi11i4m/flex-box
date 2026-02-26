@@ -1,4 +1,5 @@
 import { Gapi } from './gapi/gapi.ts';
+import { handleOAuthCallbackRequest } from './gapi/oauth-callback.ts';
 import {
   EVENT_MATCHER_MEMOIZE_TAG,
   EventMatcher,
@@ -57,6 +58,22 @@ Deno.cron(cronName, cronSchedule, async () => {
 console.log(
   `[startup:${deploymentId}] Cron registration complete: ${cronName} (${cronSchedule}).`,
 );
+
+console.log(
+  `[startup:${deploymentId}] Starting HTTP handler (/auth_callback + health).`,
+);
+
+Deno.serve(request => {
+  const { pathname } = new URL(request.url);
+  if (pathname === '/auth_callback') {
+    return handleOAuthCallbackRequest(request);
+  }
+
+  return new Response('ok', {
+    status: 200,
+    headers: { 'content-type': 'text/plain; charset=utf-8' },
+  });
+});
 
 export async function runSyncJob() {
   const [gcalEvents, super7Events] = await Promise.all([

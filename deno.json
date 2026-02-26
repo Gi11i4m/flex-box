@@ -4,7 +4,6 @@
     "axios": "npm:axios@1.7.7",
     "axios-cookiejar-support": "npm:axios-cookiejar-support@4.0.7",
     "chalk": "npm:chalk@4.1.2",
-    "express": "npm:express@4.21.1",
     "google-auth-library": "npm:google-auth-library@8.9.0",
     "googleapis": "npm:googleapis@109.0.1",
     "graphql-request": "npm:graphql-request@7.4.0",

@@ -1,9 +1,12 @@
-import express, { Request, Response } from 'express';
 import { Credentials, OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 import open from 'open';
 import { env, envOptional } from '../shared/env.ts';
 import { Database } from '../db/database.ts';
+import {
+  cancelOAuthCallbackWait,
+  waitForOAuthCallbackCode,
+} from './oauth-callback.ts';
 
 export class OAuth2 {
   private readonly auth: OAuth2Client;
@@ -61,63 +64,16 @@ export class OAuth2 {
       scope: ['https://www.googleapis.com/auth/calendar.events'],
     });
 
-    let resolveGotTokens!: () => void;
-    let rejectGotTokens!: (reason?: unknown) => void;
-    const gotTokens = new Promise<void>((resolve, reject) => {
-      resolveGotTokens = resolve;
-      rejectGotTokens = reject;
-    });
-
     const timeoutMs = 120_000;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    const server = express()
-      .get(
-        '/auth_callback',
-        async ({ query: { code } }: Request, res: Response) => {
-          try {
-            const { tokens } = await this.auth.getToken(code as string);
-            await this.setTokens(tokens);
-            res.send(
-              `
-<html lang="html">
-<script>window.close()</script>
-<body><h3>Dit venster mag gesloten worden</h3></body>
-</html>
-`,
-            );
-            resolveGotTokens();
-          } catch (error) {
-            res.status(500).send('Authentication failed.');
-            rejectGotTokens(error);
-          } finally {
-            if (timeoutId) {
-              clearTimeout(timeoutId);
-            }
-            server.close();
-          }
-        },
-      )
-      .listen(8080);
-
-    timeoutId = setTimeout(() => {
-      server.close();
-      rejectGotTokens(
-        new Error(
-          `Timed out after ${timeoutMs}ms waiting for OAuth callback on http://localhost:8080/auth_callback`,
-        ),
-      );
-    }, timeoutMs);
+    const callbackCodePromise = waitForOAuthCallbackCode(timeoutMs);
 
     await open(url).catch(error => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      server.close();
-      rejectGotTokens(error);
+      cancelOAuthCallbackWait(error);
     });
 
-    await gotTokens;
+    const callbackCode = await callbackCodePromise;
+    const { tokens } = await this.auth.getToken(callbackCode);
+    await this.setTokens(tokens);
   }
 
   private async setTokens(tokens: Credentials | undefined) {
