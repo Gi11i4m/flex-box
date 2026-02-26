@@ -83,9 +83,11 @@ export class PushPressWebsite {
       .map<Event>((r) => ({
         id: String(r.uuid),
         title: r.reservationTitle.trim(),
-        start: DateTime.fromISO(r.rawStartTime).setZone("Europe/Brussels", {
-          keepLocalTime: true,
-        }),
+        start: DateTime.fromISO(r.rawStartTime)
+          .toUTC()
+          .setZone("Europe/Brussels", {
+            keepLocalTime: true,
+          }),
         status: r.waitlisted ? "⏳" : "✅",
       }))
       .filter((event) => NOW < event.start);
@@ -129,11 +131,13 @@ export class PushPressWebsite {
           ({
             ...rest,
             startTime: DateTime.fromISO(startTime!)
-              .setZone("Europe/Brussels", { keepLocalTime: true })
-              .toISO(),
+                .toUTC()
+                .setZone("Europe/Brussels", { keepLocalTime: true })
+                .toISO(),
             endTime: DateTime.fromISO(endTime!)
-              .setZone("Europe/Brussels", { keepLocalTime: true })
-              .toISO(),
+                .toUTC()
+                .setZone("Europe/Brussels", { keepLocalTime: true })
+                .toISO(),
           }) as PushPressClass,
       );
   }
