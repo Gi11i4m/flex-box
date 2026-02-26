@@ -47,7 +47,7 @@ export class EventMatcher {
   }
 
   private matches(event1: Event, event2: Event) {
-    return event1.start.equals(event2.start);
+    return event1.start.toMillis() === event2.start.toMillis();
   }
 
   private equals(event1?: Event, event2?: Event) {
@@ -56,7 +56,7 @@ export class EventMatcher {
     }
     return (
       event1.title === event2.title &&
-      event1.start.equals(event2.start) &&
+      event1.start.toMillis() === event2.start.toMillis() &&
       event1.status === event2.status
     );
   }
