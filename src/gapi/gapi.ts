@@ -1,13 +1,14 @@
-import { google, calendar_v3 } from "googleapis";
-import { NOW } from "../shared/date";
-import { Event } from "../shared/event";
-import { gapiEventToGcalEvent } from "./mapper";
-import { OAuth2 } from "./oauth";
-import { env, envNumber, isDryRun } from "../shared/env";
-import { Database } from "../db/database";
-import Schema$Event = calendar_v3.Schema$Event;
+import { google, calendar_v3 } from 'googleapis';
+import { NOW } from '../shared/date.ts';
+import { Event } from '../shared/event.ts';
+import { gapiEventToGcalEvent } from './mapper.ts';
+import { OAuth2 } from './oauth.ts';
+import { env, envNumber, isDryRun } from '../shared/env.ts';
+import { Database } from '../db/database.ts';
 
-export const CROSSFIT_EVENT_PREFIX = "💪";
+type Schema$Event = calendar_v3.Schema$Event;
+
+export const CROSSFIT_EVENT_PREFIX = '💪';
 
 export class Gapi {
   auth: OAuth2;
@@ -15,7 +16,7 @@ export class Gapi {
 
   constructor(database: Database) {
     this.auth = new OAuth2(database);
-    this.calendar = google.calendar("v3");
+    this.calendar = google.calendar('v3');
   }
 
   async authenticate() {
@@ -25,13 +26,13 @@ export class Gapi {
 
   async getCrossfitEvents(): Promise<Event[]> {
     const params: calendar_v3.Params$Resource$Events$List = {
-      calendarId: env("GOOGLE_CALENDAR_ID") || undefined,
+      calendarId: env('GOOGLE_CALENDAR_ID') || undefined,
       q: CROSSFIT_EVENT_PREFIX,
       singleEvents: true,
-      orderBy: "startTime",
+      orderBy: 'startTime',
       timeMin: NOW.toISO()!,
       timeMax: NOW.plus({
-        week: envNumber("NUMBER_OF_WEEKS_TO_RESERVE"),
+        week: envNumber('NUMBER_OF_WEEKS_TO_RESERVE'),
       }).toISO()!,
     };
 
@@ -50,7 +51,7 @@ export class Gapi {
 
   private haveIDeclinedThisEvent(event: Schema$Event): boolean {
     return !!event.attendees?.find(
-      (att) => att.self && att.responseStatus === "declined",
+      att => att.self && att.responseStatus === 'declined',
     );
   }
 
@@ -64,7 +65,7 @@ export class Gapi {
     );
     !isDryRun() &&
       (await this.calendar.events.patch({
-        calendarId: env("GOOGLE_CALENDAR_ID"),
+        calendarId: env('GOOGLE_CALENDAR_ID'),
         eventId: event.id,
         requestBody: { summary: newEventTitle },
       }));

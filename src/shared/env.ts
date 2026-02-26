@@ -7,36 +7,38 @@ export type Env = {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REDIRECT_URL?: string;
+  GOOGLE_REFRESH_TOKEN?: string;
 
   SUPER7_LOGIN?: string;
   SUPER7_PASS?: string;
 
-  JSONBIN_MASTER_KEY?: string;
-  JSONBIN_ACCESS_KEY?: string;
-  JSONBIN_BIN_ID?: string;
-  JSONBIN_ACCOUNT_NAME?: string;
+  ACCOUNT_NAME?: string;
 };
 
 export function env<T = string>(
-  value: keyof Omit<Env, "DRY_RUN" | "NUMBER_OF_WEEKS_TO_RESERVE">,
+  value: keyof Omit<Env, 'DRY_RUN' | 'NUMBER_OF_WEEKS_TO_RESERVE'>,
 ): T {
   return getRawEnvValue(value) as T;
 }
 
-export function envBoolean(value: keyof Pick<Env, "DRY_RUN">): boolean {
+export function envOptional<T = string>(value: keyof Env): T | undefined {
+  return Deno.env.get(value) as T | undefined;
+}
+
+export function envBoolean(value: keyof Pick<Env, 'DRY_RUN'>): boolean {
   const envValue = getRawEnvValue(value);
-  if (envValue === "false") {
+  if (envValue === 'false') {
     return false;
   }
   return Boolean(value);
 }
 
 export function isDryRun() {
-  return envBoolean("DRY_RUN");
+  return envBoolean('DRY_RUN');
 }
 
 export function envNumber(
-  value: keyof Pick<Env, "NUMBER_OF_WEEKS_TO_RESERVE">,
+  value: keyof Pick<Env, 'NUMBER_OF_WEEKS_TO_RESERVE'>,
 ): number {
   const numberValue = Number.parseInt(getRawEnvValue(value));
   if (Number.isNaN(numberValue)) {
@@ -48,8 +50,7 @@ export function envNumber(
 }
 
 function getRawEnvValue(value: keyof Env) {
-  const rawEnv = process.env as Env;
-  const envValue = rawEnv[value];
+  const envValue = envOptional(value);
   if (!envValue) {
     throw new Error(`Env variable ${value} is missing`);
   }

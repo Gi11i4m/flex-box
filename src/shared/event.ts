@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime } from 'luxon';
 
 export interface Event {
   id?: string;
@@ -7,6 +7,6 @@ export interface Event {
   status: EventStatus;
 }
 
-export const eventStatusValues = ["✅", "⏳", "❌"] as const;
+export const eventStatusValues = ['✅', '⏳', '❌'] as const;
 
 export type EventStatus = (typeof eventStatusValues)[number];

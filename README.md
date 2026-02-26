@@ -12,6 +12,12 @@ Want to run this yourself? Fork this project, set up GitHub Actions, create a Go
 
 You can run the script locally by creating a `.env` file with the same variables. To get the GOOGLE_REFRESH_TOKEN you'll have to run it once locally and log the refresh token to copy it (`oauth.ts - set tokens()`).
 
+## Deno KV
+
+Refresh tokens are stored in Deno KV per account (`ACCOUNT_NAME`) instead of JSONBin.
+
+- `ACCOUNT_NAME` selects which refresh token namespace to use.
+
 ## OAuth2
 
 Confused about OAuth2, me 2. Here's a [clear article](https://medium.com/starthinker/google-oauth-2-0-access-token-and-refresh-token-explained-cccf2fc0a6d9).

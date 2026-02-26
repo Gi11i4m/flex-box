@@ -1,12 +1,11 @@
-import { Event } from "./event";
-import { DateTime } from "luxon";
-import { dateTimeFormat, dateTimeLocale } from "./date";
+import { Event } from './event.ts';
+import { dateTimeFormat, dateTimeLocale } from './date.ts';
 
 export function logEvents(
   events: Event[],
   loggingOptions: { newline: boolean } = { newline: false },
 ) {
-  events.forEach((event) => logEvent(event));
+  events.forEach(event => logEvent(event));
   if (loggingOptions.newline) {
     console.log();
   }
@@ -17,7 +16,7 @@ export function logEvent(event: Event) {
 }
 
 export function eventToString({ title, status, start }: Event) {
-  return `${status ? status + " " : ""}[${start.toLocaleString(
+  return `${status ? status + ' ' : ''}[${start.toLocaleString(
     dateTimeFormat,
     dateTimeLocale,
   )}] ${title}`;

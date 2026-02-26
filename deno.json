@@ -1,0 +1,31 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "axios": "npm:axios@1.7.7",
+    "axios-cookiejar-support": "npm:axios-cookiejar-support@4.0.7",
+    "chalk": "npm:chalk@4.1.2",
+    "express": "npm:express@4.21.1",
+    "google-auth-library": "npm:google-auth-library@8.9.0",
+    "googleapis": "npm:googleapis@109.0.1",
+    "graphql-request": "npm:graphql-request@7.4.0",
+    "luxon": "npm:luxon@3.5.0",
+    "open": "npm:open@8.4.2",
+    "tough-cookie": "npm:tough-cookie@4.1.4",
+    "typescript-memoize": "npm:typescript-memoize@1.1.1"
+  },
+  "tasks": {
+    "start": "deno run --env-file=.env --unstable-kv --unstable-cron --allow-net --allow-env --allow-read --allow-write --allow-run src/index.ts",
+    "check": "deno check src/index.ts",
+    "compile": "deno compile --unstable-kv --unstable-cron --allow-net --allow-env --allow-read --allow-write --allow-run --output bin/flex-box src/index.ts"
+  },
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "fmt": {
+    "lineWidth": 80,
+    "semiColons": true,
+    "singleQuote": false
+  }
+}

@@ -1,13 +1,13 @@
-import { Event, eventStatusValues } from "./event";
+import { Event, eventStatusValues } from './event.ts';
 
 export const gcalEventToSuper7Event = ({ title, start }: Event): Event => ({
   title: stripStatusFrom(title),
   start,
-  status: "✅",
+  status: '✅',
 });
 
 export const stripStatusFrom = (title: string) =>
   eventStatusValues.reduce(
-    (acc, status) => acc.replace(` ${status}`, ""),
+    (acc, status) => acc.replace(` ${status}`, ''),
     title,
   );

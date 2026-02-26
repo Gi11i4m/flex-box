@@ -1,15 +1,15 @@
-import axios, { AxiosInstance } from "axios";
-import { wrapper } from "axios-cookiejar-support";
-import { CookieJar } from "tough-cookie";
-import { Event } from "../shared/event";
-import { NOW } from "../shared/date";
-import { DateTime } from "luxon";
-import { Memoize } from "typescript-memoize";
-import { env, envNumber } from "../shared/env";
-import { GraphQLClient, gql } from "graphql-request";
+import axios, { AxiosInstance } from 'axios';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
+import { Event } from '../shared/event.ts';
+import { NOW } from '../shared/date.ts';
+import { DateTime } from 'luxon';
+import { Memoize } from 'typescript-memoize';
+import { env, envNumber } from '../shared/env.ts';
+import { GraphQLClient, gql } from 'graphql-request';
 
-export const SUPER7_WEBSITE_MEMOIZE_TAG = "super7_website_memoize";
-const PUSH_PRESS_BASE_URL = "https://api.pushpress.com/v2";
+export const SUPER7_WEBSITE_MEMOIZE_TAG = 'super7_website_memoize';
+const PUSH_PRESS_BASE_URL = 'https://api.pushpress.com/v2';
 
 type PushPressGraphQlRequirements = {
   loginInfo: PushPressLoginInfo;
@@ -29,14 +29,14 @@ export class PushPressWebsite {
         withCredentials: true,
         baseURL: PUSH_PRESS_BASE_URL,
         jar: this.cookieJar,
-      }),
-    );
+      } as any) as any,
+    ) as AxiosInstance;
   }
 
   async authenticate() {
-    const { data } = await this.http.post<PushPressLoginInfo>("/auth/login", {
-      username: env("SUPER7_LOGIN"),
-      password: env("SUPER7_PASS"),
+    const { data } = await this.http.post<PushPressLoginInfo>('/auth/login', {
+      username: env('SUPER7_LOGIN'),
+      password: env('SUPER7_PASS'),
     });
     this.graphql = {
       loginInfo: data,
@@ -80,17 +80,17 @@ export class PushPressWebsite {
       ${PushPressReservationFragment}
     `);
     return reservations
-      .map<Event>((r) => ({
+      .map<Event>(r => ({
         id: String(r.uuid),
         title: r.reservationTitle.trim(),
         start: DateTime.fromISO(r.rawStartTime)
           .toUTC()
-          .setZone("Europe/Brussels", {
+          .setZone('Europe/Brussels', {
             keepLocalTime: true,
           }),
-        status: r.waitlisted ? "⏳" : "✅",
+        status: r.waitlisted ? '⏳' : '✅',
       }))
-      .filter((event) => NOW < event.start);
+      .filter(event => NOW < event.start);
   }
 
   // TODO: filter out Aarschot events
@@ -120,23 +120,23 @@ export class PushPressWebsite {
       {
         classStartDate: NOW.toJSDate(),
         classEndDate: NOW.plus({
-          weeks: envNumber("NUMBER_OF_WEEKS_TO_RESERVE"),
+          weeks: envNumber('NUMBER_OF_WEEKS_TO_RESERVE'),
         }).toJSDate(),
       },
     );
     return classes
-      .filter((c) => c.startTime && c.endTime)
+      .filter(c => c.startTime && c.endTime)
       .map(
         ({ startTime, endTime, ...rest }) =>
           ({
             ...rest,
             startTime: DateTime.fromISO(startTime!)
               .toUTC()
-              .setZone("Europe/Brussels", { keepLocalTime: true })
+              .setZone('Europe/Brussels', { keepLocalTime: true })
               .toISO(),
             endTime: DateTime.fromISO(endTime!)
               .toUTC()
-              .setZone("Europe/Brussels", { keepLocalTime: true })
+              .setZone('Europe/Brussels', { keepLocalTime: true })
               .toISO(),
           }) as PushPressClass,
       );
@@ -150,13 +150,13 @@ export class PushPressWebsite {
   private async getClassesForDay(date: DateTime): Promise<PushPressClass[]> {
     const classes = await this.getClasses();
     return classes.filter(
-      (c) => DateTime.fromISO(c.startTime).diff(date).days < 1,
+      c => DateTime.fromISO(c.startTime).diff(date).days < 1,
     );
   }
 
   async eventIdFor(event: Event): Promise<string | undefined> {
     const eventsForMatchingDay = await this.getClassesForDay(event.start);
-    const maybeMatchedEvent = eventsForMatchingDay.find((e) =>
+    const maybeMatchedEvent = eventsForMatchingDay.find(e =>
       DateTime.fromISO(e.startTime).equals(event.start),
     );
     return maybeMatchedEvent ? String(maybeMatchedEvent.uuid) : undefined;
@@ -167,7 +167,7 @@ export class PushPressWebsite {
     const graphql = this.graphQlClient;
     const loginInfo = this.graphql?.loginInfo;
     const client = loginInfo?.clients[0];
-    if (!client) throw Error("The PushPress client profile is not available");
+    if (!client) throw Error('The PushPress client profile is not available');
 
     const { profile } = await graphql.request<{
       profile: PushPressProfileDetails;
@@ -227,11 +227,11 @@ export class PushPressWebsite {
           clientUserUuid: profile.clientUserUuid,
           calendarItemUuid: eventId,
           subscriptionUuid: subscription.subscriptionUuid,
-          source: "member_app_web",
+          source: 'member_app_web',
         },
       );
     } catch (error) {
-      console.info("Joining waitlist.", error);
+      console.info('Joining waitlist.', error);
       await graphql.request<void>(
         gql`
           mutation JoinWaitlist(
@@ -267,25 +267,25 @@ export class PushPressWebsite {
   private async getSubscription(): Promise<PushPressSubscription> {
     const profile = await this.getProfile();
     const activeSubscriptions = profile.subscriptions.filter(
-      (subscription) =>
+      subscription =>
         subscription.active &&
-        subscription.status === "active" &&
-        subscription.planObject.name !== "Insurance",
+        subscription.status === 'active' &&
+        subscription.planObject.name !== 'Insurance',
     );
     if (!activeSubscriptions.length) {
-      throw Error("No active PushPress subscription available");
+      throw Error('No active PushPress subscription available');
     }
 
-    const usableSubscription = activeSubscriptions.find((subscription) => {
+    const usableSubscription = activeSubscriptions.find(subscription => {
       const { available } = subscription.currentPeriodUsage;
       return available > 0 || available === -1;
     });
     if (usableSubscription) return usableSubscription;
 
-    const now = NOW.startOf("day");
-    const dateFiltered = activeSubscriptions.filter((subscription) => {
+    const now = NOW.startOf('day');
+    const dateFiltered = activeSubscriptions.filter(subscription => {
       if (!subscription.endDate) return true;
-      const endDate = DateTime.fromISO(subscription.endDate).startOf("day");
+      const endDate = DateTime.fromISO(subscription.endDate).startOf('day');
       return endDate >= now;
     });
 
@@ -326,7 +326,7 @@ export class PushPressWebsite {
   }
 
   private get graphQlClient(): GraphQLClient {
-    if (!this.graphql) throw Error("The GraphQL client is not initialized yet");
+    if (!this.graphql) throw Error('The GraphQL client is not initialized yet');
     return this.graphql.client;
   }
 }
@@ -453,7 +453,7 @@ const PushPressProfileFragment = gql`
 
 type PushPressProfileMembershipStatus = {
   code: string;
-  __typename: "ProfileMembershipStatus";
+  __typename: 'ProfileMembershipStatus';
 };
 
 type PushPressCurrentPeriodUsage = {
@@ -467,12 +467,12 @@ type PushPressCurrentPeriodUsage = {
   waitlists: number;
   noShows: number;
   available: number;
-  __typename: "CurrentPeriodUsage";
+  __typename: 'CurrentPeriodUsage';
 };
 
 type PushPressSubscriptionPlanCalendarItemType = {
   uuid: string;
-  __typename: "SubscriptionPlanCalendarItemType";
+  __typename: 'SubscriptionPlanCalendarItemType';
 };
 
 type PushPressSubscriptionPlanObject = {
@@ -483,7 +483,7 @@ type PushPressSubscriptionPlanObject = {
   type: string;
   interval: number;
   intervalType: string;
-  __typename: "SubscriptionPlanSimple";
+  __typename: 'SubscriptionPlanSimple';
 };
 
 type PushPressSubscription = {
@@ -496,7 +496,7 @@ type PushPressSubscription = {
   plan: string;
   currentPeriodUsage: PushPressCurrentPeriodUsage;
   planObject: PushPressSubscriptionPlanObject;
-  __typename: "Subscription";
+  __typename: 'Subscription';
 };
 
 type PushPressProfileDetails = {
@@ -525,7 +525,7 @@ type PushPressProfileDetails = {
   membershipStatus: PushPressProfileMembershipStatus;
   subscriptions: PushPressSubscription[];
   linkedAccounts: PushPressProfileDetails[];
-  __typename: "Profile";
+  __typename: 'Profile';
 };
 
 const PushPressProfileDetailsFragment = gql`

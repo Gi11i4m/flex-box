@@ -1,7 +1,7 @@
-import { Event } from "./event";
-import { Memoize } from "typescript-memoize";
+import { Event } from './event.ts';
+import { Memoize } from 'typescript-memoize';
 
-export const EVENT_MATCHER_MEMOIZE_TAG = "event_matcher_website_memoize";
+export const EVENT_MATCHER_MEMOIZE_TAG = 'event_matcher_website_memoize';
 
 export class EventMatcher {
   constructor(
@@ -13,7 +13,7 @@ export class EventMatcher {
   get eventsToBook(): Event[] {
     return this.gcalEvents
       .reduce((acc, gcalEvent) => {
-        const matchedSuper7Event = this.super7Events.find((super7Event) =>
+        const matchedSuper7Event = this.super7Events.find(super7Event =>
           this.matches(super7Event, gcalEvent),
         );
         return matchedSuper7Event ? acc : [...acc, gcalEvent];
@@ -24,7 +24,7 @@ export class EventMatcher {
   @Memoize({ tags: [EVENT_MATCHER_MEMOIZE_TAG] })
   get eventsToUpdate(): Event[] {
     return this.gcalEvents.reduce<Event[]>((acc, gcalEvent) => {
-      const matchedSuper7Event = this.super7Events.find((super7Event) =>
+      const matchedSuper7Event = this.super7Events.find(super7Event =>
         this.matches(super7Event, gcalEvent),
       );
       if (this.equals(matchedSuper7Event, gcalEvent)) {
@@ -32,15 +32,15 @@ export class EventMatcher {
       }
       return matchedSuper7Event
         ? [...acc, { ...matchedSuper7Event, id: gcalEvent.id }]
-        : [...acc, { ...gcalEvent, status: "❌" }];
+        : [...acc, { ...gcalEvent, status: '❌' }];
     }, []);
   }
 
   @Memoize({ tags: [EVENT_MATCHER_MEMOIZE_TAG] })
   get eventsToDelete(): Event[] {
     return this.super7Events.filter(
-      (super7Event) =>
-        !this.gcalEvents.find((gcalEvent) =>
+      super7Event =>
+        !this.gcalEvents.find(gcalEvent =>
           this.matches(super7Event, gcalEvent),
         ),
     );
