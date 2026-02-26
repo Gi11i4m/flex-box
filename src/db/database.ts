@@ -10,7 +10,26 @@ export class Database {
 
   static async initialize(): Promise<Database> {
     const accountName = env('ACCOUNT_NAME');
-    const kv = await Deno.openKv();
+    const timeoutMs = 10_000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(
+          new Error(
+            `Timed out after ${timeoutMs}ms while initializing Deno KV`,
+          ),
+        );
+      }, timeoutMs);
+    });
+
+    const kv = await Promise.race([Deno.openKv(), timeoutPromise]).finally(
+      () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      },
+    );
+
     return new Database(kv, accountName);
   }
 

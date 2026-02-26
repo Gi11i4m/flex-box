@@ -18,9 +18,17 @@ export class OAuth2 {
   }
 
   async authenticate() {
-    const refreshToken =
-      (await this.database.getRefreshKey()) ??
-      envOptional('GOOGLE_REFRESH_TOKEN');
+    const refreshTokenFromKv = await this.database.getRefreshKey();
+    const refreshTokenFromEnv = envOptional('GOOGLE_REFRESH_TOKEN');
+    const refreshToken = refreshTokenFromKv ?? refreshTokenFromEnv;
+
+    const tokenSource = refreshTokenFromKv
+      ? 'kv'
+      : refreshTokenFromEnv
+        ? 'env'
+        : 'none';
+    console.log(`🔐 OAuth token source: ${tokenSource}`);
+
     if (refreshToken) {
       console.log('🔓 Refresh token found, authenticating...\n');
       await this.setTokens({ refresh_token: refreshToken });
@@ -36,6 +44,12 @@ export class OAuth2 {
       return this;
     }
 
+    if (envOptional('DENO_DEPLOYMENT_ID')) {
+      throw new Error(
+        'No refresh token found in KV or GOOGLE_REFRESH_TOKEN. Interactive OAuth is unavailable on Deno Deploy; seed KV for ACCOUNT_NAME first.',
+      );
+    }
+
     console.log('🔒 No refresh token found, authenticating...\n');
     await this.authenticateWithoutCredentials();
     return this;
@@ -47,30 +61,62 @@ export class OAuth2 {
       scope: ['https://www.googleapis.com/auth/calendar.events'],
     });
 
-    let resolveGotTokens: Function;
-    const gotTokens = new Promise(res => (resolveGotTokens = res));
+    let resolveGotTokens!: () => void;
+    let rejectGotTokens!: (reason?: unknown) => void;
+    const gotTokens = new Promise<void>((resolve, reject) => {
+      resolveGotTokens = resolve;
+      rejectGotTokens = reject;
+    });
+
+    const timeoutMs = 120_000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const server = express()
       .get(
         '/auth_callback',
         async ({ query: { code } }: Request, res: Response) => {
-          const { tokens } = await this.auth.getToken(code as string);
-          await this.setTokens(tokens);
-          res.send(
-            `
+          try {
+            const { tokens } = await this.auth.getToken(code as string);
+            await this.setTokens(tokens);
+            res.send(
+              `
 <html lang="html">
 <script>window.close()</script>
 <body><h3>Dit venster mag gesloten worden</h3></body>
 </html>
 `,
-          );
-          server.close();
-          resolveGotTokens();
+            );
+            resolveGotTokens();
+          } catch (error) {
+            res.status(500).send('Authentication failed.');
+            rejectGotTokens(error);
+          } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+            server.close();
+          }
         },
       )
       .listen(8080);
 
-    open(url);
+    timeoutId = setTimeout(() => {
+      server.close();
+      rejectGotTokens(
+        new Error(
+          `Timed out after ${timeoutMs}ms waiting for OAuth callback on http://localhost:8080/auth_callback`,
+        ),
+      );
+    }, timeoutMs);
+
+    await open(url).catch(error => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      server.close();
+      rejectGotTokens(error);
+    });
+
     await gotTokens;
   }
 

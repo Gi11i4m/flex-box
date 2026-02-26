@@ -3,6 +3,7 @@ import {
   EVENT_MATCHER_MEMOIZE_TAG,
   EventMatcher,
 } from './shared/event-matcher.ts';
+import { envOptional } from './shared/env.ts';
 import { logEvents } from './shared/logger.ts';
 import { gcalEventToSuper7Event } from './shared/mapper.ts';
 import { Event } from './shared/event.ts';
@@ -15,20 +16,46 @@ import { SUPER7_WEBSITE_MEMOIZE_TAG } from './pushpress/push-press-website.ts';
 // TODO: only allow booking in Leuven
 // TODO: running with Gilliam account ATM
 
-const database = await Database.initialize();
+const deploymentId = envOptional('DENO_DEPLOYMENT_ID') ?? 'local';
+console.log(`[startup:${deploymentId}] Booting sync service...`);
+
+let database: Database;
+try {
+  console.log(`[startup:${deploymentId}] Initializing database...`);
+  database = await Database.initialize();
+  console.log(`[startup:${deploymentId}] Database initialized.`);
+} catch (error) {
+  console.error(
+    `[startup:${deploymentId}] Database initialization failed.`,
+    error,
+  );
+  throw error;
+}
+
 const gapi = new Gapi(database);
 const super7 = new PushPress();
+const cronName = 'Sync Calendar Reservations';
+const cronSchedule = '*/5 * * * *';
 
-Deno.cron('Sync Calendar Reservations', '*/5 * * * *', async () => {
+console.log(
+  `[startup:${deploymentId}] Registering cron "${cronName}" (${cronSchedule})...`,
+);
+
+Deno.cron(cronName, cronSchedule, async () => {
+  const startedAt = Date.now();
+  console.log(`[cron:${deploymentId}] Tick started.`);
+
   try {
     await runSyncJob();
+    const durationMs = Date.now() - startedAt;
+    console.log(`[cron:${deploymentId}] Tick finished in ${durationMs}ms.`);
   } catch (error) {
-    console.error('Sync job failed', error);
+    console.error(`[cron:${deploymentId}] Tick failed.`, error);
   }
 });
 
 console.log(
-  'Deno cron registered: Sync Calendar Reservations (every 5 minutes).',
+  `[startup:${deploymentId}] Cron registration complete: ${cronName} (${cronSchedule}).`,
 );
 
 export async function runSyncJob() {

@@ -1,4 +1,6 @@
 export type Env = {
+  DENO_DEPLOYMENT_ID?: string;
+
   DRY_RUN?: string;
 
   NUMBER_OF_WEEKS_TO_RESERVE?: string;
